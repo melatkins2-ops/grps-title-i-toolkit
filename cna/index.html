@@ -179,18 +179,20 @@ const TYPES=[
  {k:'per',n:'Perception',q:'What do scholars, families and staff say?'}
 ];
 const SIP=['Growth','Proficiency','Chronic absenteeism','English learner progress','Graduation rate','Test participation'];
+const YEARS=['2023–24','2024–25','2025–26'];
+const VNAME={grade:'By grade',group:'By group',trend:'3-year trend'};
 const GROUPS=['All scholars','Black','Hispanic or Latino','White','Two or more races','English learners','With disabilities','Economically disadvantaged'];
 /* ch: grade | group | one | (none). bad: which direction is worse. u: unit shown after numbers. lab: label for a single number. */
 const TOPICS=[
  // DEMOGRAPHIC
- {id:'enroll',t:'dem',r:1,n:'Enrollment by grade and group',q:'How many scholars do we serve, and is that changing?',b:['Enrollment by grade','Enrollment by group: race and ethnicity, English learners, special education, economically disadvantaged'],w:'Synergy Analytics: Building Overview dashboard',ch:'one',u:'',lab:'scholars enrolled',pre:'enr',sug:['proj','mobility']},
- {id:'attend',t:'dem',r:1,n:'Attendance and chronic absenteeism',q:'Who is missing 10% or more of school?',b:['Chronic absenteeism for the whole school','The same rate by grade'],w:'Synergy Analytics: Chronic Absenteeism by Focus Year dashboard · MI School Data: Student Attendance',ch:'grade',u:'%',bad:'high',pre:'ca',sip:'Chronic absenteeism',sug:['outreach','mobility','health']},
+ {id:'enroll',t:'dem',r:1,n:'Enrollment by grade and group',q:'How many scholars do we serve, and is that changing?',b:['Total enrollment for the last 3 years','Enrollment by grade','Enrollment by group: race and ethnicity, English learners, special education, economically disadvantaged'],w:'Synergy Analytics: Building Overview dashboard · MI School Data: Student Counts',ch:'grade',views:['trend','grade','group'],u:'',noref:1,labs:{trend:'Total enrollment, 3 years',grade:'Number of scholars by grade',group:'Number of scholars by group'},pre:'enr',sug:['proj','mobility']},
+ {id:'attend',t:'dem',r:1,n:'Attendance and chronic absenteeism',q:'Who is missing 10% or more of school?',b:['Chronic absenteeism for the whole school, last 3 years','The same rate by grade and by group'],w:'Synergy Analytics: Chronic Absenteeism by Focus Year dashboard (pick the year or group) · MI School Data: Student Attendance',ch:'grade',views:['grade','group','trend'],labs:{grade:'Chronic absenteeism by grade',group:'Chronic absenteeism by group',trend:'Whole-school chronic absenteeism, 3 years'},u:'%',bad:'high',pre:'ca',sip:'Chronic absenteeism',sug:['outreach','mobility','health']},
  {id:'special',t:'dem',r:1,n:'Special populations',q:'Are English learners, scholars with IEPs or 504 plans, and scholars experiencing homelessness getting what they need?',b:['How many scholars are in each group','How their attendance and results compare with all scholars'],w:'Synergy Analytics: Building Overview dashboard',ch:'group',u:'%',bad:'high',lab2:'Chronic absenteeism by group',sug:['elsped']},
  {id:'proj',t:'dem',r:0,n:'Enrollment projections',q:'Which groups are growing or shrinking over 3–5 years?',b:['Enrollment trend over 3–5 years'],w:'Synergy Analytics: Building Overview dashboard'},
- {id:'mobility',t:'dem',r:0,n:'Mobility',q:'How many scholars move in or out during the year?',b:['Entries and withdrawals after the first month'],w:'Synergy'},
+ {id:'mobility',t:'dem',r:0,n:'Mobility',q:'How many scholars move in or out during the year?',b:['Entries and withdrawals after the first month, last 3 years'],w:'Synergy',ch:'trend',views:['trend','group'],u:'%',bad:'high',labs:{trend:'% of scholars who moved in or out, 3 years',group:'% who moved in or out, by group'}},
  {id:'staffdemo',t:'dem',r:0,n:'Staff demographics',q:'Does our staff reflect our scholars?',b:['Staff race and ethnicity','Years of experience']},
- {id:'staffatt',t:'dem',r:0,n:'Staff attendance',q:'Are staff absences affecting learning?',b:['Staff absence rate','Days with uncovered classes']},
- {id:'turnover',t:'dem',r:0,n:'Staff hiring and turnover',q:'Are vacancies or turnover affecting scholars?',b:['Vacancies','Staff who left last year','Long-term substitutes']},
+ {id:'staffatt',t:'dem',r:0,n:'Staff attendance',q:'Are staff absences affecting learning?',b:['Staff absence rate, last 3 years','Days with uncovered classes'],ch:'trend',views:['trend'],u:'%',bad:'high',labs:{trend:'Staff absence rate, 3 years'}},
+ {id:'turnover',t:'dem',r:0,n:'Staff hiring and turnover',q:'Are vacancies or turnover affecting scholars?',b:['Staff who left each of the last 3 years','Vacancies','Long-term substitutes'],ch:'trend',views:['trend'],u:'',bad:'high',labs:{trend:'Staff who left, 3 years'}},
  {id:'classsize',t:'dem',r:0,n:'Class sizes',q:'Are class sizes reasonable in every grade?',b:['Class size reports']},
  {id:'courses',t:'dem',r:0,n:'Course enrollment patterns',q:'Who is in advanced and support courses?',b:['Course rosters by group']},
  {id:'extra',t:'dem',r:0,n:'Extracurricular participation',q:'Who takes part in clubs, sports and activities?',b:['Rosters by group']},
@@ -275,19 +277,25 @@ function done(t){const x=S.topics[t.id];return !!(x&&x.mark)}
 function typeProgress(k){const a=activeTopics(k).filter(t=>t.r);const d=a.filter(done).length;return {d,n:a.length}}
 /* prefill from school data */
 function prefill(t,x){if(x._pre||!SCH)return;x._pre=1;
- if(t.pre==='enr'&&SCH.enr!=null&&x.v.one==null){x.v.one=SCH.enr;x.src='Fall 2024 enrollment, GRPS Annual Education Report'}
- if(t.pre==='ca'&&SCH.ca!=null&&x.v.ref==null){x.v.ref=SCH.ca;x.src='Whole-school rate: 2025, MI School Data'}
+ if(t.pre==='enr'&&SCH.enr!=null&&x.v.y1==null){x.v.y1=SCH.enr;x.src='2024–25: Fall 2024 count, GRPS Annual Education Report'}
+ if(t.pre==='ca'&&SCH.ca!=null&&x.v.ref==null){x.v.ref=SCH.ca;if(x.v.grp0==null)x.v.grp0=SCH.ca;if(x.v.y1==null)x.v.y1=SCH.ca;x.src='Whole-school rate: 2025, MI School Data (shown as 2024–25)'}
  if(t.pre==='nwea'&&SCH.nwea){const N=SCH.nwea;['reading','math'].forEach((sub,mi)=>{gradeRows().forEach(r=>{const vals=[];for(let g=r.lo;g<=r.hi;g++){const i=N.grades.indexOf(gl(g));if(i>=0)vals.push(N[sub][i])}if(vals.length){x.v[mi+':'+r.k]=Math.round(vals.reduce((a,b)=>a+b,0)/vals.length)}})});x.src='NWEA '+N.year+', % meeting benchmark (GRPS Annual Education Report)'+(gradeRows().some(r=>r.lo!==r.hi)?'. Grade bands show the average of their grades.':'')}
 }
 /* ---------- chart ---------- */
-function chartData(t){const x=ts(t.id);if(t.ch==='grade'){const rows=gradeRows().map(r=>({k:r.k,n:r.n,v:x.v[(t.metric?x.m+':':'')+r.k]}));return {rows,ref:t.pre==='ca'?x.v.ref:null,refName:'the school rate'}}
- if(t.ch==='group'){const rows=GROUPS.map((g,i)=>({k:'grp'+i,n:g,v:x.v['grp'+i]}));const all=rows[0].v;return {rows:rows.slice(1),ref:all,refName:'all scholars',all}}
+function view(t){if(!t.views)return t.ch;const x=ts(t.id);return t.views.includes(x.view)?x.view:t.views[0]}
+function chartData(t,vw){const x=ts(t.id);vw=vw||view(t);if(vw==='grade'){const rows=gradeRows().map(r=>({k:r.k,n:r.n,v:x.v[(t.metric?x.m+':':'')+r.k]}));return {vw,rows,ref:t.pre==='ca'?x.v.ref:null,refName:'the school rate'}}
+ if(vw==='group'){const rows=GROUPS.map((g,i)=>({k:'grp'+i,n:g,v:x.v['grp'+i]}));const all=rows[0].v;if(t.noref)return {vw,rows,ref:null};return {vw,rows:rows.slice(1),ref:all,refName:'all scholars',all}}
+ if(vw==='trend'){return {vw,rows:YEARS.map((y,i)=>({k:'y'+i,n:y,v:x.v['y'+i]})),ref:null,trend:1}}
  return null}
 function num(v){return v===''||v==null||isNaN(+v)?null:+v}
-function insight(t){const d=chartData(t);if(!d)return '';const rows=d.rows.filter(r=>num(r.v)!=null);if(!rows.length)return '';
+function insight(t,vw){const d=chartData(t,vw);if(!d)return '';const rows=d.rows.filter(r=>num(r.v)!=null);if(!rows.length)return '';
+ const u0=t.u||'';
+ if(d.trend){if(rows.length<2)return `${rows[0].n}: ${rows[0].v}${u0}. Add another year to see the trend.`;const a=rows[0],z=rows[rows.length-1];const diff=Math.round((z.v-a.v)*10)/10;if(!diff)return `No change from ${a.n} to ${z.n} (${z.v}${u0}).`;const up=diff>0;const amt=Math.abs(diff)+(u0==='%'?' points':'');
+  return `${up?'Up':'Down'} ${amt} from ${a.n} to ${z.n} (${a.v}${u0} → ${z.v}${u0}).`+(t.bad?((t.bad==='high')===up?' Moving the wrong way.':' Moving the right way.'):'')}
+ if(!t.bad){const s=rows.slice().sort((a,b)=>b.v-a.v);return rows.length>1?`${s[0].n} is largest (${s[0].v}${u0}). ${s[s.length-1].n} is smallest (${s[s.length-1].v}${u0}).`:`${s[0].n}: ${s[0].v}${u0}.`}
  const hi=t.bad!=='low';const ref=num(d.ref);
  const worst=rows.slice().sort((a,b)=>hi?b.v-a.v:a.v-b.v)[0];const u=t.u||'';
- if(ref!=null){const diff=Math.round((worst.v-ref)*10)/10;if(hi?diff>0:diff<0)return `${worst.n} is ${hi?'highest':'lowest'} at ${worst.v}${u}, ${Math.abs(diff)} points ${hi?'above':'below'} ${d.refName}.`;return `No ${t.ch==='group'?'group':'grade'} is worse than ${d.refName}.`}
+ if(ref!=null){const diff=Math.round((worst.v-ref)*10)/10;if(hi?diff>0:diff<0)return `${worst.n} is ${hi?'highest':'lowest'} at ${worst.v}${u}, ${Math.abs(diff)} points ${hi?'above':'below'} ${d.refName}.`;return `No ${d.vw==='group'?'group':'grade'} is worse than ${d.refName}.`}
  const best=rows.slice().sort((a,b)=>hi?a.v-b.v:b.v-a.v)[0];
  if(rows.length>1)return `${worst.n} is ${hi?'highest':'lowest'} at ${worst.v}${u}. ${best.n} is ${hi?'lowest':'highest'} at ${best.v}${u}.`;
  return `${worst.n}: ${worst.v}${u}.`}
@@ -297,15 +305,18 @@ function chartHTML(t){const x=ts(t.id);
  if(t.ch==='one'){const v=num(x.v.one);const bar=`<div id="onebar_${t.id}">${oneBar(t)}</div>`;
   return `<div class="chartbox"><label style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><input class="inp" type="number" inputmode="decimal" style="width:120px;font-size:26px;font-weight:800;margin:0" data-v="${t.id}|one" value="${v??''}" aria-label="${esc(t.lab)}" placeholder="—"><span style="font-weight:600">${t.u==='%'?'%':''} ${esc(t.lab)}</span></label>${bar}${x.src?`<div class="src">${esc(x.src)}</div>`:''}</div>`}
  const d=chartData(t);if(!d)return '';
- if(t.ch==='grade'&&!d.rows.length)return `<div class="chartbox muted">Choose this school's grades on the Start step to see grade-level rows.</div>`;
+ if(d.vw==='grade'&&!d.rows.length)return `<div class="chartbox muted">Choose this school's grades on the Start step to see grade-level rows.</div>`;
  const vals=d.rows.map(r=>num(r.v)).concat([num(d.ref)]);const mx=scaleMax(t,vals);const ref=num(d.ref);const hi=t.bad!=='low';
- const bars=d.rows.map(r=>{const v=num(r.v);const worse=v!=null&&ref!=null&&(hi?v>ref:v<ref);const col=v==null?'transparent':(ref==null?'var(--blue)':(worse?'var(--need)':'var(--blue)'));
+ const tr=d.trend?d.rows.filter(r=>num(r.v)!=null):[];const tFirst=tr.length?num(tr[0].v):null;
+ const bars=d.rows.map(r=>{const v=num(r.v);let worse=v!=null&&ref!=null&&(hi?v>ref:v<ref);if(d.trend)worse=!!t.bad&&v!=null&&tFirst!=null&&(hi?v>tFirst:v<tFirst);const col=v==null?'transparent':(worse?'var(--need)':'var(--blue)');
   return `<div class="br" title="${esc(r.n)}${v!=null?': '+v+(t.u||''):''}"><span class="nm">${esc(r.n)}</span><span class="trk"><span class="fill" style="width:${v!=null?Math.min(100,v/mx*100):0}%;background:${col}"></span>${ref!=null?`<span class="ref" style="left:calc(${Math.min(100,ref/mx*100)}% - 1px)"></span>`:''}</span><input type="number" inputmode="decimal" data-v="${t.id}|${t.metric?x.m+':':''}${r.k}" value="${v??''}" aria-label="${esc(r.n)}${t.u==='%'?' percent':''}" placeholder="—"></div>`}).join('');
- const refRow=t.ch==='group'?`<div class="br"><span class="nm">All scholars</span><span class="muted" style="font-size:13px">the comparison line</span><input type="number" inputmode="decimal" data-v="${t.id}|grp0" value="${num(d.all)??''}" aria-label="All scholars" placeholder="—"></div>`:(t.pre==='ca'?`<div class="br"><span class="nm">Whole school</span><span class="muted" style="font-size:13px">the comparison line</span><input type="number" inputmode="decimal" data-v="${t.id}|ref" value="${ref??''}" aria-label="Whole school" placeholder="—"></div>`:'');
- const tabs=t.metric?`<div class="tabs">${t.metric.map((m,i)=>`<button data-metric="${t.id}|${i}" aria-pressed="${x.m===i}">${m}</button>`).join('')}</div>`:'';
+ const refRow=(d.vw==='group'&&!t.noref)?`<div class="br"><span class="nm">All scholars</span><span class="muted" style="font-size:13px">the comparison line</span><input type="number" inputmode="decimal" data-v="${t.id}|grp0" value="${num(d.all)??''}" aria-label="All scholars" placeholder="—"></div>`:((t.pre==='ca'&&d.vw==='grade')?`<div class="br"><span class="nm">Whole school</span><span class="muted" style="font-size:13px">the comparison line</span><input type="number" inputmode="decimal" data-v="${t.id}|ref" value="${ref??''}" aria-label="Whole school" placeholder="—"></div>`:'');
+ const vtabs=(t.views&&t.views.length>1)?`<div class="tabs vtabs" role="group" aria-label="Chart view">${t.views.map(v=>`<button data-view="${t.id}|${v}" aria-pressed="${d.vw===v}">${VNAME[v]}</button>`).join('')}</div>`:'';
+ const tabs=vtabs+(t.metric?`<div class="tabs">${t.metric.map((m,i)=>`<button data-metric="${t.id}|${i}" aria-pressed="${x.m===i}">${m}</button>`).join('')}</div>`:'');
+ const lab=(t.labs&&t.labs[d.vw])||(d.vw==='group'&&t.lab2)||'';
  const big=(t.pre==='ca'&&ref!=null)?`<div class="row" style="gap:10px;align-items:baseline;margin-bottom:6px"><span class="big-n">${ref}%</span><span class="muted" style="font-weight:600">of scholars are chronically absent</span></div>`:'';
  const ins=insight(t);
- return `<div class="chartbox" id="chart_${t.id}">${big}${t.lab2?`<div style="font-weight:700;font-size:14px">${esc(t.lab2)}</div>`:''}${tabs}${refRow}<div class="bars" role="img" aria-label="${esc(t.n)} chart">${bars}</div>${ref!=null?`<div class="row" style="gap:6px;font-size:12px;color:var(--muted);margin-top:8px"><span style="width:2px;height:12px;background:var(--ink)"></span>${t.ch==='group'?'All scholars':'Whole-school rate'}</div>`:''}${ins?`<div class="insight">${esc(ins)}</div>`:''}${x.src?`<div class="src">${esc(x.src)}</div>`:''}<div class="src">Leave a box blank if you don't have that number.</div></div>`}
+ return `<div class="chartbox" id="chart_${t.id}">${big}${tabs}${lab?`<div style="font-weight:700;font-size:14px;margin:4px 0">${esc(lab)}</div>`:''}${refRow}<div class="bars" role="img" aria-label="${esc(t.n)} chart">${bars}</div>${ref!=null?`<div class="row" style="gap:6px;font-size:12px;color:var(--muted);margin-top:8px"><span style="width:2px;height:12px;background:var(--ink)"></span>${d.vw==='group'?'All scholars':'Whole-school rate'}</div>`:''}${ins?`<div class="insight">${esc(ins)}</div>`:''}${x.src?`<div class="src">${esc(x.src)}</div>`:''}<div class="src">${d.vw==='grade'?'':'Use Synergy Analytics (choose a year or group) or MI School Data. '}Leave a box blank if you don't have that number.</div></div>`}
 /* ---------- steps ---------- */
 const STEPS=[['start','Start'],['dem','Demographic'],['aca','Academic'],['pro','Process'],['per','Perception'],['summary','Summary'],['plan','Plan']];
 function renderSteps(){$('steps').innerHTML=STEPS.map(([k,n])=>{let dot='';if(TYPES.find(t=>t.k===k)&&S.code){const p=typeProgress(k);dot=`<span class="dot ${p.d===p.n?'done':p.d?'part':''}">${p.d===p.n?'✓':''}</span>`}
@@ -459,6 +470,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,a.typecar
  if(d.open){S.open=S.open===d.open?'':d.open;render();const el=document.querySelector(`[data-open="${d.open}"]`);if(el&&S.open)el.scrollIntoView({block:'start',behavior:'smooth'});return}
  if(d.mark){const [id,m]=d.mark.split('|');const x=ts(id);if(m==='na'){x.na=!x.na;x.mark=x.na?'x':''}else{x.na=false;x.mark=x.mark===m?'':m}const y=scrollY;render();scrollTo(0,y);return}
  if(d.metric){const [id,i]=d.metric.split('|');ts(id).m=+i;refreshChart(id);return}
+ if(d.view){const [id,v]=d.view.split('|');ts(id).view=v;save();refreshChart(id);return}
  if(d.add){if(!S.added.includes(d.add))S.added.push(d.add);const tp=TOPICS.find(o=>o.id===d.add);if(tp.t!==S.step){toast(`Added to ${TYPES.find(T=>T.k===tp.t).n} data.`);const y=scrollY;render();scrollTo(0,y)}else{S.open=d.add;render();const el=document.querySelector(`[data-open="${d.add}"]`);if(el)el.scrollIntoView({block:'start',behavior:'smooth'})}return}
  if(d.remove){S.added=S.added.filter(x=>x!==d.remove);delete S.topics[d.remove];S.needs.forEach(n=>n.topics=n.topics.filter(x=>x!==d.remove));S.open='';render();return}
  if(d.newneed){const t=TOPICS.find(o=>o.id===d.newneed);const note=(S.topics[t.id]||{}).note;const id='n'+Date.now().toString(36);S.needs.push({id,text:note?note.split(/(?<=\.)\s/)[0]:t.n,topics:[t.id],grp:false,sip:t.sip||'',ctrl:true});const y=scrollY;render();scrollTo(0,y);return}
@@ -483,9 +495,10 @@ function cell(t,o={}){const ps=(Array.isArray(t)?t:[t]).map(x=>para((x&&typeof x
 function table(head,rows,widths){const tr=(cells,hd)=>`<w:tr>${cells.map((c,i)=>cell(c,{b:hd,shade:hd?'F1F4F6':(c&&c.shade),w:widths&&widths[i]})).join('')}</w:tr>`;
  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="single" w:sz="4" w:color="B9C0C6"/>`).join('')}</w:tblBorders><w:tblCellMar><w:left w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr>${head?tr(head,true):''}${rows.map(r=>tr(r)).join('')}</w:tbl>`+para('',{after:80})}
 function numbersText(t){const x=S.topics[t.id];if(!x||!t.ch)return '';if(t.ch==='one')return num(x.v.one)!=null?`${x.v.one}${t.u==='%'?'%':''} ${t.lab}`:'';
- const d=chartData(t);const parts=[];if(num(d.ref)!=null)parts.push((t.ch==='group'?'All scholars':'Whole school')+' '+d.ref+(t.u||''));
- if(t.metric){t.metric.forEach((m,mi)=>{const r=gradeRows().map(r=>{const v=x.v[mi+':'+r.k];return num(v)!=null?r.n+' '+v+'%':null}).filter(Boolean);if(r.length)parts.push(m+': '+r.join(', '))})}
- else d.rows.forEach(r=>{if(num(r.v)!=null)parts.push(r.n+' '+r.v+(t.u||''))});return parts.join('; ')}
+ const out=[];(t.views||[t.ch]).forEach(vw=>{const d=chartData(t,vw);if(!d)return;const parts=[];if(num(d.ref)!=null)parts.push((vw==='group'?'All scholars':'Whole school')+' '+d.ref+(t.u||''));
+  if(t.metric&&vw==='grade'){t.metric.forEach((m,mi)=>{const r=gradeRows().map(r=>{const v=x.v[mi+':'+r.k];return num(v)!=null?r.n+' '+v+'%':null}).filter(Boolean);if(r.length)parts.push(m+': '+r.join(', '))})}
+  else d.rows.forEach(r=>{if(num(r.v)!=null)parts.push(r.n+' '+r.v+(t.u||''))});
+  if(parts.length)out.push((t.views?VNAME[vw]+': ':'')+parts.join('; '))});return out.join(' | ')}
 function buildDocXml(){const out=[];const id=identified();const R=ranked();const pri=S.pri.map(p=>S.needs.find(n=>n.id===p)).filter(Boolean);
  const meta=para([SCH.n,' · CEPI building code ',SCH.c,' · ',YEAR,spanLabel()?' · Grades '+spanLabel():'',' · ',id?'School Index: '+id:'Not identified'],{sz:20,color:'5A6570',after:200});
  out.push(h1('Comprehensive Needs Assessment Summary',false),meta);
