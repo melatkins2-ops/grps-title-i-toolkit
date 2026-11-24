@@ -2,7 +2,7 @@
 
 Static site for GitHub Pages. No build step and no server code.
 
-- `index.html` – landing page with the three tools and the 2026–27 templates
+- `index.html` – landing page with the four tools and the 2026–27 templates
 - `meeting/` – Annual Title I Meeting Builder
 - `compact/` – Compact and Family Engagement Plan Builder
 - `program/` – Title I Program Requirements Guide
