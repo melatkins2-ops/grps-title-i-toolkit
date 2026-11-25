@@ -234,6 +234,8 @@ hr.split{border:0;border-top:2px dashed #cfd5d9;margin:34px 0}
 .modes button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
 @media (max-width:640px){.compact-doc .cols{grid-template-columns:1fr}.sig{grid-template-columns:1fr}}
 .exbox{background:#E7F0F8;border-left:4px solid #005696;border-radius:10px;padding:12px 14px;margin:12px 0}.exbox p{margin:4px 0 10px;font-size:14px;line-height:1.5}
+.frombox{background:#E7F0F8;border-left:5px solid #005696;border-radius:12px;padding:12px 14px;margin:0 0 12px}.fk{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:#005696;margin-bottom:2px}
+.sugbox{background:#E7F0F8;border-radius:12px;padding:12px 14px;margin:8px 0 10px}.sugs{display:flex;flex-direction:column;gap:6px;margin-top:6px}.sug{display:flex;gap:10px;align-items:baseline;white-space:normal;text-align:left;background:#fff;border:1.5px solid #c7d3dd;border-radius:10px;padding:8px 10px;font:inherit;cursor:pointer;color:#005696;font-weight:700;font-size:13px}.sug{flex-wrap:nowrap}.sug>b{white-space:nowrap;min-width:62px}.sug span{color:#15293B;font-weight:500;font-size:14.5px}.sug[aria-pressed="true"]{border-color:#1D7A4C;color:#1D7A4C;background:#F2FAF5}
 </style>
 </head>
 <body>
@@ -294,15 +296,47 @@ const PLAN=[
  {id:'f',ex:"Interpreters (Spanish, Swahili and Arabic) are scheduled for every family event. Meetings are held in accessible rooms, and families can request accommodations through the office. Our family liaison personally invites families of English learners and migrant scholars.",cite:'1116(f)',req:'Provide full opportunities for participation of caregivers with limited English proficiency, with disabilities, and of migratory children.',lead:'Staff ensure full participation through:',opts:['Interpreters at every family meeting','Translated materials','Accessible meeting locations','Accommodations on request','Outreach through the family liaison']}
 ];
 
+/* ===== Title I plan bridge: reads the plan saved by the Comprehensive Needs Assessment ===== */
+const TPB={KEY:'grps-title1-plan:',
+ read(code){if(!code)return null;try{const r=localStorage.getItem(this.KEY+code);const p=r?JSON.parse(r):null;return p&&p.items&&p.items.length?p:null}catch(e){return null}},
+ store(p){try{localStorage.setItem(this.KEY+p.code,JSON.stringify(p));return true}catch(e){return false}},
+ async fromDocx(file){if(typeof JSZip==='undefined')throw new Error('zip');const z=await JSZip.loadAsync(file);const f=z.file('docProps/custom.xml');if(!f)throw new Error('none');const x=await f.async('string');const m=x.match(/name="GRPSTitleIPlan"[\s\S]*?<vt:lpwstr>([\s\S]*?)<\/vt:lpwstr>/);if(!m)throw new Error('none');
+  const t=m[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');const p=JSON.parse(t);if(!p.code||!p.items||!p.items.length)throw new Error('empty');return p},
+ param(k){try{return new URLSearchParams(location.search).get(k)}catch(e){return null}},
+ cap(t){t=String(t||'').trim();return t?t[0].toUpperCase()+t.slice(1):t},
+ goal(it){const so=this.cap(it.so).replace(/\.?$/,'.');if(it.so)return so;let g=this.cap(it.need).replace(/\.?$/,'');if(it.measure&&it.goal!=='')g+=`: ${it.measure} from ${it.now!==''?it.now:'[now]'} to ${it.goal} by ${it.by||'spring'}`;return g+'.'},
+ AREA:{
+  attendance:{label:'attendance',school:['Call or text you after 2 absences and work with you on what gets in the way','Celebrate scholars and families when attendance improves'],caregiver:['Tell the school when my scholar will be absent and why','Ask the school for help early if getting to school is hard'],scholar:['Come to school every day I can and be on time'],help:'Tell us when your scholar will be out, and ask for help early if getting to school is hard.'},
+  reading:{label:'reading',school:['Give every scholar reading help at their level in small groups every day','Share reading progress after each NWEA test and what we are working on'],caregiver:['Read or talk about books with my scholar for 20 minutes a day','Ask my scholar’s teacher about reading goals at conferences'],scholar:['Read every day and ask for help when a word or idea is hard'],help:'Read or talk about books together for 20 minutes a day, and ask us about your scholar’s reading goal.'},
+  math:{label:'math',school:['Give every scholar math help at their level in small groups','Share math progress after each NWEA test and games to practice at home'],caregiver:['Practice math facts or play math games with my scholar each week','Ask my scholar’s teacher about math goals at conferences'],scholar:['Practice math every day and show my thinking'],help:'Play a math game or practice facts together each week, and ask us about your scholar’s math goal.'},
+  el:{label:'English language growth',school:['Teach English every day and send information in our families’ home languages','Explain WIDA results to families in their home language'],caregiver:['Keep reading and talking with my scholar in our home language','Ask for an interpreter whenever I need one'],scholar:['Practice speaking, reading and writing in English every day'],help:'Keep reading and talking in your home language, and ask for an interpreter any time.'},
+  behavior:{label:'behavior and safety',school:['Teach and recognize our school-wide expectations','Call you with good news, not only when there is a problem'],caregiver:['Talk with my scholar about our school expectations','Work with staff as a team when problems come up'],scholar:['Follow our school-wide expectations and solve problems peacefully'],help:'Talk with your scholar about our school expectations, and work with us as a team.'},
+  graduation:{label:'graduation',school:['Review credits with every scholar each marking period','Offer credit recovery and tutoring when scholars fall behind'],caregiver:['Check my scholar’s grades and credits each marking period','Contact the counselor early if my scholar is falling behind'],scholar:['Know my credits and ask for help early if I am falling behind'],help:'Check grades and credits each marking period, and call the counselor early with questions.'},
+  family:{label:'family partnership',school:['Hold family events at times that work for families','Ask families what they need and share what we changed'],caregiver:['Attend at least two school events or conferences this year','Share my ideas through surveys and meetings'],scholar:['Share school news and papers with my family'],help:'Come to at least two events or conferences, and tell us what would help.'},
+  general:{label:'our school goal',school:['Share our school goal and progress with families each marking period'],caregiver:['Ask how I can help with our school goal'],scholar:['Do my best work every day and ask for help when I need it'],help:'Ask us how you can help with our goal this year.'}},
+ area(it){return this.AREA[it.area]||this.AREA.general},
+ chartHTML(c,dark){if(!c||!c.rows||!c.rows.length)return '';const mx=Math.max(c.unit==='%'?100:0,...c.rows.map(r=>r.v||0))||1;const fg=dark?'#fff':'#15293B';
+  return `<div style="font-size:13px;margin-bottom:6px;opacity:.9">${c.title.replace(/[<>&]/g,'')}</div>`+c.rows.map((r,i)=>{const last=!r.part&&!r.goal&&i===c.rows.filter(q=>!q.part&&!q.goal).length-1;const bg=r.part?`repeating-linear-gradient(135deg,${dark?'#fff':'#005696'} 0 6px,${dark?'#BFD6EA':'#7FA9CC'} 6px 9px)`:r.goal?(dark?'#9FE0BC':'#1D7A4C'):(last&&c.bad?'#F57B20':(dark?'#fff':'#005696'));
+   return `<div style="display:flex;align-items:center;gap:10px;margin:4px 0"><span style="width:118px;font-size:13px;color:${fg}">${String(r.n).replace(/[<>&]/g,'')}</span><span style="flex:1;height:22px;background:${dark?'rgba(255,255,255,.12)':'#EEF0EE'};border-radius:5px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(100,(r.v||0)/mx*100)}%;background:${bg};border-radius:5px"></span></span><b style="width:58px;text-align:right;color:${fg}">${r.v}${c.unit}</b></div>`}).join('')}
+};
+
 /* ================= STATE ================= */
 const blank=()=>({mode:'compact',school:'',schoolCode:'',schoolOther:false,year:'2026–27',grades:'Elementary',
  goals:'',curriculum:'',conf:CONF_DEFAULT,confWhen:'',reports:[],access:[],volunteer:[],
- caregiver:[],caregiverX:[],scholar:[],scholarX:[],
+ caregiver:[],caregiverX:[],scholar:[],scholarX:[],schoolX:[],
  channels:[],langs:'',translated:false,
  devEvents:[],devWhen:'',devHow:'',distribute:'',confDiscuss:true,
  log:[],plan:{},planX:{},evidence:{},open:'c1',tab:'compact',showAll:false});
 let S=blank();
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(blank(),JSON.parse(r));}catch(e){}
+(function(){const c=TPB.param('school');if(c&&SCHOOLS.find(x=>x.c===c)){if(S.schoolCode!==c){const f=SCHOOLS.find(x=>x.c===c);S.schoolCode=c;S.school=f.n;S.schoolOther=false;}if(TPB.param('tab')==='plan'){S.mode='plan';S.tab='plan';S.open='p_c3';}else if(TPB.param('from')==='cna'){S.open='c3';}}if(!S.schoolX)S.schoolX=[];})();
+const PLAN0=()=>TPB.read(S.schoolCode);
+function planBanner(){const P=PLAN0();if(!P)return `<p class="hint" style="margin:0 0 10px">Finished your Comprehensive Needs Assessment on another computer? <button class="btn text sm" data-act="bring">Bring in a plan</button></p>`;
+ const it=P.items[0];return `<div class="frombox"><div class="fk">FROM YOUR NEEDS ASSESSMENT · ${esc(P.school)}</div><b>Priority: ${esc(it.need)}</b>${it.if?`<div class="small" style="margin-top:4px"><b>If</b> ${esc(it.if)}${it.then?` <b>then</b> ${esc(it.then)}`:''}${it.so?` <b>so that</b> ${esc(it.so)}`:''}</div>`:''}<div class="small" style="margin-top:6px">${S.mode==='compact'?'Look for blue suggestion boxes in Goals, The school will, and Caregivers and scholars will.':'Look for the blue suggestion box in section 1116(c)(3).'} Nothing is added until you choose it. <button class="btn text sm" data-act="bring">Bring in a different plan</button></div></div>`}
+function sugBox(k,items,title){const P=PLAN0();if(!P||!items.length)return '';return `<div class="sugbox"><div class="fk">${esc(title)}</div><div class="sugs">${items.map(t=>{const on=S[k].includes(t);return `<button class="sug" data-sug="${k}" data-v="${esc(t)}" aria-pressed="${on}"><b>${on?'✓ Added':'+ Add'}</b><span>${esc(t)}</span></button>`}).join('')}</div></div>`}
+function goalSug(){const P=PLAN0();if(!P)return '';const g=P.items.map(it=>TPB.goal(it)).join(' ');const on=S.goals.includes(g);return `<div class="sugbox"><div class="fk">FROM YOUR NEEDS ASSESSMENT</div><p style="margin:4px 0 8px">${esc(g)}</p><button class="btn line sm" data-goaluse="1" ${on?'disabled':''}>${on?'✓ In your goals':'Use as our goal'}</button> <span class="hint">You can edit the words after.</span></div>`}
+function policySug(id){const P=PLAN0();if(!P||id!=='c3')return '';const it=P.items[0];const t=`Caregivers helped review our ${P.year} Comprehensive Needs Assessment and set this year’s priority: ${it.need.replace(/\.$/,'')}. Caregiver members of the School Improvement Team will review progress${it.measure?' on '+it.measure:''} each [month].`;const on=(S.planX[id]||'').includes(t);
+ return `<div class="sugbox"><div class="fk">FROM YOUR NEEDS ASSESSMENT</div><p style="margin:4px 0 8px">${esc(t)}</p><button class="btn line sm" data-planuse="${id}" data-v="${esc(t)}" ${on?'disabled':''}>${on?'✓ Added':'Use this'}</button></div>`}
 let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){$('saved').textContent='Not saved: this browser blocks storage';}},250);}
 window.addEventListener('pagehide',()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -354,16 +388,17 @@ function secBody(id){
  if(id==='c1')return schoolField()+`
   <div class="row2"><div class="field"><label for="i_year">School year</label>${inp('year')}</div>
   <div class="field"><label for="i_grades">Grades</label><select id="i_grades" data-k="grades">${['Elementary','Middle or high school','K–8 or other'].map(o=>`<option ${S.grades===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
-  <div class="field"><label for="i_goals">Our goals for scholars this year</label><span class="hint">One to three goals from your school improvement plan, in words caregivers use.</span>${area('goals','placeholder="Example: More scholars reading on grade level by spring. Every scholar attends at least 90% of school days."')}</div>`;
+  <div class="field"><label for="i_goals">Our goals for scholars this year</label><span class="hint">One to three goals from your school improvement plan, in words caregivers use.</span>${goalSug()}${area('goals','placeholder="Example: More scholars reading on grade level by spring. Every scholar attends at least 90% of school days."')}</div>`;
  if(id==='c2')return `
   <div class="field"><label for="i_curriculum">How we provide strong teaching and a good place to learn</label>${area('curriculum','placeholder="Example: Teachers use GRPS curriculum aligned to Michigan standards, small-group reading support every day, and a safe, welcoming classroom."')}</div>
   <div class="field"><span class="lbl">Parent-teacher conferences</span><div class="row2">${inp('conf','text','aria-label="Conference description"')}${inp('confWhen','text','placeholder="When (e.g., October and March)" aria-label="When conferences happen"')}</div>${isElem()?`<label class="toggle"><input type="checkbox" data-k="confDiscuss" ${S.confDiscuss?'checked':''}> Teachers discuss the compact with each family at fall conferences</label>`:''}</div>
   <div class="field"><span class="lbl">How caregivers hear about progress</span>${picks('reports',REPORTS)}</div>
   <div class="field"><span class="lbl">How caregivers can reach staff</span>${picks('access',ACCESS)}</div>
-  <div class="field"><span class="lbl">How caregivers can volunteer, take part and observe</span>${picks('volunteer',VOLUNTEER)}</div>`;
+  <div class="field"><span class="lbl">How caregivers can volunteer, take part and observe</span>${picks('volunteer',VOLUNTEER)}</div>
+  <div class="field"><span class="lbl">Other school promises</span><span class="hint">Promises tied to your school goal.</span>${(()=>{const P=PLAN0();return P?sugBox('schoolX',[...new Set(P.items.flatMap(it=>TPB.area(it).school))],'SUGGESTED FROM YOUR PLAN · '+P.items.map(it=>TPB.area(it).label).join(' and ').toUpperCase()):''})()}${customs('schoolX','Add a school promise')}</div>`;
  if(id==='c3')return `
-  <div class="field"><span class="lbl">Caregivers will</span><span class="hint">Starts from the GRPS compact template. Keep promises realistic; caregivers should help choose them.</span>${picks('caregiver',CAREGIVER)}${customs('caregiverX','Add a caregiver promise')}</div>
-  <div class="field"><span class="lbl">Scholars will</span>${picks('scholar',SCHOLAR)}${customs('scholarX','Add a scholar promise')}</div>`;
+  <div class="field"><span class="lbl">Caregivers will</span><span class="hint">Starts from the GRPS compact template. Keep promises realistic; caregivers should help choose them.</span>${(()=>{const P=PLAN0();return P?sugBox('caregiverX',[...new Set(P.items.flatMap(it=>TPB.area(it).caregiver))],'SUGGESTED FROM YOUR PLAN'):''})()}${picks('caregiver',CAREGIVER)}${customs('caregiverX','Add a caregiver promise')}</div>
+  <div class="field"><span class="lbl">Scholars will</span>${(()=>{const P=PLAN0();return P?sugBox('scholarX',[...new Set(P.items.flatMap(it=>TPB.area(it).scholar))],'SUGGESTED FROM YOUR PLAN'):''})()}${picks('scholar',SCHOLAR)}${customs('scholarX','Add a scholar promise')}</div>`;
  if(id==='c4')return `
   <div class="field"><span class="lbl">Ways school and caregivers talk with each other</span><div class="chips">${CHANNELS.map(c=>`<button class="chip" data-chip="channels" data-v="${esc(c)}" aria-pressed="${S.channels.includes(c)}">${esc(c)}</button>`).join('')}</div></div>
   <div class="field"><label for="i_langs">Languages caregivers need besides English</label>${inp('langs','text','placeholder="For example: Spanish, Swahili"')}</div>
@@ -380,14 +415,14 @@ function secBody(id){
 }
 function planBody(){const done=PLAN.filter(p=>planText(p.id).length).length;
  return `<p class="hint" style="margin-bottom:8px">Based on the MDE ESSA-aligned Parent and Family Engagement Plan template used by GRPS. ${done} of ${PLAN.length} answered. Choose what your school does, then add your own details.</p>`+
- PLAN.map(p=>`<div class="sec ${S.open==='p_'+p.id?'open':''}" id="sec_p_${p.id}"><button class="head" data-sec="p_${p.id}" aria-expanded="${S.open==='p_'+p.id}"><span class="num ${planText(p.id).length?'ok':''}">${planText(p.id).length?'✓':''}</span><span><b>${esc(p.cite)}</b><small>${esc(p.req)}</small></span><span class="chev">›</span></button><div class="body">${S.open==='p_'+p.id?`<p class="hint">${esc(p.lead)}</p><div class="promises">${p.opts.map(o=>`<button class="promise" data-plan="${p.id}" data-v="${esc(o)}" aria-pressed="${(S.plan[p.id]||[]).includes(o)}"><span class="box">${(S.plan[p.id]||[]).includes(o)?'✓':''}</span><span>${esc(o)}</span></button>`).join('')}</div>${p.ex?`<div class="exbox"><b>Example</b><p>${esc(p.ex)}</p><button class="btn line sm" data-exuse="${p.id}">Use this example</button><span class="hint"> Then change the [brackets] and numbers to fit your school.</span></div>`:''}<div class="field"><label for="px_${p.id}">Details for your school</label><textarea id="px_${p.id}" data-planx="${p.id}" placeholder="Dates, people, specifics">${esc(S.planX[p.id]||'')}</textarea></div>`:''}</div></div>`).join('');}
+ PLAN.map(p=>`<div class="sec ${S.open==='p_'+p.id?'open':''}" id="sec_p_${p.id}"><button class="head" data-sec="p_${p.id}" aria-expanded="${S.open==='p_'+p.id}"><span class="num ${planText(p.id).length?'ok':''}">${planText(p.id).length?'✓':''}</span><span><b>${esc(p.cite)}</b><small>${esc(p.req)}</small></span><span class="chev">›</span></button><div class="body">${S.open==='p_'+p.id?`<p class="hint">${esc(p.lead)}</p><div class="promises">${p.opts.map(o=>`<button class="promise" data-plan="${p.id}" data-v="${esc(o)}" aria-pressed="${(S.plan[p.id]||[]).includes(o)}"><span class="box">${(S.plan[p.id]||[]).includes(o)?'✓':''}</span><span>${esc(o)}</span></button>`).join('')}</div>${policySug(p.id)}${p.ex?`<div class="exbox"><b>Example</b><p>${esc(p.ex)}</p><button class="btn line sm" data-exuse="${p.id}">Use this example</button><span class="hint"> Then change the [brackets] and numbers to fit your school.</span></div>`:''}<div class="field"><label for="px_${p.id}">Details for your school</label><textarea id="px_${p.id}" data-planx="${p.id}" placeholder="Dates, people, specifics">${esc(S.planX[p.id]||'')}</textarea></div>`:''}</div></div>`).join('');}
 function renderBuild(C){
  const modes=`<div class="modes" role="group" aria-label="Document"><button data-mode="compact" aria-pressed="${S.mode==='compact'}">School-Parent Compact</button><button data-mode="plan" aria-pressed="${S.mode==='plan'}">Family Engagement Plan</button></div>`;
  const intro=`<div class="intro"><h1>${S.mode==='compact'?'Build your school-parent compact':'Build your family engagement plan'}</h1><p>${S.mode==='compact'?'The compact is a shared set of promises. Write it with caregivers, then use it at fall conferences.':'The plan describes how your school carries out each family engagement requirement.'}</p><p class="links"><button class="btn text sm" data-act="example">See an example</button><button class="btn text sm" data-act="new">Start over</button></p></div>`;
  let body;
  if(S.mode==='compact')body=SECS.map((s,i)=>{const ok=secIds(s.id).every(k=>C.find(c=>c.id===k).state==='ok');return `<div class="sec ${S.open===s.id?'open':''}" id="sec_${s.id}"><button class="head" data-sec="${s.id}" aria-expanded="${S.open===s.id}"><span class="num ${ok?'ok':''}">${ok?'✓':i+1}</span><span><b>${s.t}</b><small>${s.sub}</small></span><span class="chev">›</span></button><div class="body">${S.open===s.id?secBody(s.id):''}</div></div>`;}).join('');
  else body=(S.schoolCode||S.school?'':`<p class="inline-note" style="margin-bottom:8px">Choose your school under School-Parent Compact first.</p>`)+planBody();
- $('build').innerHTML=intro+modes+body;
+ $('build').innerHTML=intro+modes+planBanner()+body+'<input type="file" id="bringplan" accept=".docx" hidden>';
 }
 
 /* ================= DOCUMENTS ================= */
@@ -408,7 +443,7 @@ function docCompact(){const name=S.school||'';return `<div class="compact-doc"><
  <li>Keep you informed about progress through: ${S.reports.length?esc(S.reports.map(lc).join('; ')):'<span class="fill">progress reports</span>'}.</li>
  <li>Make staff easy to reach: ${S.access.length?esc(S.access.map(lc).join('; ')):'<span class="fill">access to staff</span>'}.</li>
  <li>Welcome you to take part: ${S.volunteer.length?esc(S.volunteer.map(lc).join('; ')):'<span class="fill">volunteer and observe</span>'}.</li>
- <li>Talk with you, not just to you, through ${S.channels.length?esc(S.channels.map(lc).join(', ')):'<span class="fill">two-way communication</span>'}${S.langs.trim()?', in English and '+esc(S.langs):''}.</li></ul>
+ <li>Talk with you, not just to you, through ${S.channels.length?esc(S.channels.map(lc).join(', ')):'<span class="fill">two-way communication</span>'}${S.langs.trim()?', in English and '+esc(S.langs):''}.</li>${S.schoolX.map(x=>`<li>${esc(x)}.</li>`).join('')}</ul>
  <div class="cols"><div class="box2"><h4>Caregivers will</h4>${li(cg())}</div><div class="box2"><h4>Scholars will</h4>${li(sc())}</div></div>
  <p class="small" style="margin-top:12px">This compact was developed with caregivers through ${S.devEvents.length?esc(S.devEvents.map(lc).join(', ')):'<span class="fill">how caregivers helped</span>'}${S.devWhen?' ('+esc(S.devWhen)+')':''}. We review it with caregivers every year. Share your ideas with the school anytime.</p>
  <div class="sig"><div>Caregiver</div><div>Scholar</div><div>Teacher</div></div></div>`;}
@@ -455,6 +490,7 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.ev){S.evidence[t.dataset.ev]=t.checked;refreshView();return;}
 });
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='bringplan'&&t.files&&t.files[0]){TPB.fromDocx(t.files[0]).then(p=>{TPB.store(p);const f=SCHOOLS.find(x=>x.c===p.code);if(f){S.schoolCode=p.code;S.school=f.n;S.schoolOther=false;}render();alert('Plan brought in for '+p.school+'.');}).catch(()=>alert('That file doesn’t have a needs assessment plan in it. Use the Word file downloaded from the Comprehensive Needs Assessment’s Plan step.'));return;}
  if(t.dataset.school){const v=t.value;if(v==='other'){S.schoolOther=true;S.schoolCode='';S.school='';}else{S.schoolOther=false;S.schoolCode=v;const f=SCHOOLS.find(x=>x.c===v);S.school=f?f.n:'';}render();return;}
  if(t.dataset.log!==undefined&&t.tagName==='SELECT'){S.log[+t.dataset.log][t.dataset.f]=t.value;refreshView();}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id&&e.target.id.startsWith('add_')){e.preventDefault();addCustom(e.target.id.slice(4));}});
@@ -462,6 +498,10 @@ function addCustom(k){const el=$('add_'+k);const v=(el.value||'').trim();if(!v)r
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.sec){S.open=S.open===b.dataset.sec?'':b.dataset.sec;render();return;}
  if(b.dataset.mode){S.mode=b.dataset.mode;S.open=S.mode==='compact'?'c1':'';S.tab=S.mode==='compact'?'compact':'plan';render();return;}
+ if(b.dataset.sug){const k=b.dataset.sug,v=b.dataset.v;const i=S[k].indexOf(v);if(i>=0)S[k].splice(i,1);else S[k].push(v);render();return;}
+ if(b.dataset.goaluse){const P=PLAN0();if(P){const g=P.items.map(it=>TPB.goal(it)).join(' ');if(!S.goals.includes(g))S.goals=S.goals.trim()?S.goals.trim()+'\n'+g:g;}render();const ta=$('i_goals');if(ta)ta.focus();return;}
+ if(b.dataset.planuse){const id=b.dataset.planuse,v=b.dataset.v;const cur=(S.planX[id]||'').trim();if(!cur.includes(v))S.planX[id]=cur?cur+'\n'+v:v;render();return;}
+ if(b.dataset.act==='bring'){const f=$('bringplan');if(f)f.click();return;}
  if(b.dataset.exuse){const id=b.dataset.exuse;const ex=PLAN.find(q=>q.id===id).ex;const cur=(S.planX[id]||'').trim();if(!cur.includes(ex))S.planX[id]=cur?cur+'\n'+ex:ex;save();render();const ta=$('px_'+id);if(ta){ta.focus();ta.scrollIntoView({block:'center'})}return;}
  if(b.dataset.fix){S.mode=b.dataset.fixmode;S.open=b.dataset.fix==='p'?('p_'+(PLAN.find(p=>!planText(p.id).length)||PLAN[0]).id):b.dataset.fix;S.tab=S.mode==='compact'?S.tab:'plan';setPane('build');render();const el=$('sec_'+S.open);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});return;}
  if(b.dataset.pick){const k=b.dataset.pick,v=b.dataset.v;S[k]=S[k].includes(v)?S[k].filter(x=>x!==v):[...S[k],v];render();return;}
@@ -529,7 +569,7 @@ function buildDocXml(){
   `Keep you informed about progress through: ${S.reports.map(lc).join('; ')||'[progress reports]'}.`,
   `Make staff easy to reach: ${S.access.map(lc).join('; ')||'[access to staff]'}.`,
   `Welcome you to take part: ${S.volunteer.map(lc).join('; ')||'[volunteer and observe]'}.`,
-  `Talk with you, not just to you, through ${S.channels.map(lc).join(', ')||'[two-way communication]'}${S.langs.trim()?', in English and '+S.langs:''}.`].forEach(t=>out.push(para(t,{bullet:true,after:60})));
+  `Talk with you, not just to you, through ${S.channels.map(lc).join(', ')||'[two-way communication]'}${S.langs.trim()?', in English and '+S.langs:''}.`,...S.schoolX.map(x=>x.replace(/\.?$/,'.'))].forEach(t=>out.push(para(t,{bullet:true,after:60})));
  out.push(h2('Caregivers will'));(cg().length?cg():['[Caregiver promises]']).forEach(t=>out.push(para(t,{bullet:true,after:60})));
  out.push(h2('Scholars will'));(sc().length?sc():['[Scholar promises]']).forEach(t=>out.push(para(t,{bullet:true,after:60})));
  out.push(para(`This compact was developed with caregivers through ${S.devEvents.map(lc).join(', ')||'[how caregivers helped]'}${S.devWhen?' ('+S.devWhen+')':''}. We review it with caregivers every year. Share your ideas with the school anytime.`,{sz:20,before:160}));

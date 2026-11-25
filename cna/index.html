@@ -158,6 +158,7 @@ textarea{min-height:84px;resize:vertical}
 .empty{border:2px dashed var(--line2);border-radius:18px;padding:22px;color:var(--ink2)}
 @media print{.bar,.steps,.navrow,.btn,.marks,.sugg,.optlist{display:none!important}body{background:#fff}.topic{break-inside:avoid}}
 .ytdv{font-weight:700;text-align:right;min-width:64px;padding-right:12px}.br.ytd .nm{font-style:italic}
+.handoff{margin-top:28px;background:#fff;border-radius:20px;padding:22px}.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.hcard{border:2px solid;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}.hcard .h3{font-size:18px}.hcard p{margin:0;font-size:14px;color:#33414D;flex:1}.hcard .btn{align-self:flex-start}
 </style>
 </head>
 <body>
@@ -258,7 +259,23 @@ let S=null,SCH=null;
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
 function blank(code){return {code:code||'',step:'start',open:'',topics:{},added:[],needs:[],pri:[],plans:{},story:'',storyEdit:false,span:null}}
 function load(code){const raw=store.get(KEY+code);let x=null;try{x=raw?JSON.parse(raw):null}catch(e){}S=Object.assign(blank(code),x||{});S.code=code;SCH=SCHOOLS.find(s=>s.c===code)||null;}
-let saveT=null;function save(){if(!S.code)return;clearTimeout(saveT);saveT=setTimeout(()=>{const ok=store.set(KEY+S.code,JSON.stringify(S));store.set(KEY+'last',S.code);$('saved').textContent=ok?'Saved in this browser':'Not saved: this browser blocks storage';},250);}
+function xmlEsc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+const PLANKEY='grps-title1-plan:';const TOOLKIT='https://melatkins2-ops.github.io/grps-title-i-toolkit/';
+function planArea(n){const t=n.topics||[];const tx=(n.text||'').toLowerCase();
+ if(t.includes('attend')||t.includes('outreach')||n.sip==='Chronic absenteeism'||/absen|attend/.test(tx))return 'attendance';
+ if(t.includes('grad')||n.sip==='Graduation rate'||/graduat|credit/.test(tx))return 'graduation';
+ if(t.includes('elp')||n.sip==='English learner progress'||/english learner|wida/.test(tx))return 'el';
+ if(t.some(x=>['disc','pbis'].includes(x))||/behavior|suspen|referral/.test(tx))return 'behavior';
+ if(/math/.test(tx))return 'math';
+ if(t.some(x=>['tests','growth','gaps'].includes(x))||['Proficiency','Growth'].includes(n.sip)||/read|ela|literacy|proficien/.test(tx))return 'reading';
+ if(t.includes('family')||t.includes('fvoice')||/famil|caregiver|parent/.test(tx))return 'family';
+ return 'general'}
+function planChart(n,P){if(n.topics.includes('attend')){const x=S.topics.attend;const t=TOPICS.find(o=>o.id==='attend');if(x){const rows=YEARS.map((y,i)=>({n:y,v:num(x.v['y'+i])})).filter(r=>r.v!=null);const m=mp1();if(m&&mpPct(m.all)!=null)rows.push({n:'This fall (MP1)',v:mpPct(m.all),part:1});if(rows.length)return {title:'Scholars missing 10% or more of school',unit:'%',bad:'high',rows}}}
+ for(const id of n.topics){const t=TOPICS.find(o=>o.id===id);const x=S.topics[id];if(!t||!x||!t.views||!t.views.includes('trend'))continue;const rows=YEARS.map((y,i)=>({n:y,v:num(x.v[mk(t,x,'y'+i)])})).filter(r=>r.v!=null);if(rows.length>1)return {title:t.n+(t.metric?' ('+t.metric[x.m||0]+')':''),unit:t.u||'',bad:t.bad||'',rows}}
+ const now=num(P.now),goal=num(P.goal);if(now!=null||goal!=null)return {title:P.measure||n.text,unit:'',bad:'',rows:[now!=null?{n:'Now',v:now}:null,goal!=null?{n:'Goal, '+(P.by||''),v:goal,goal:1}:null].filter(Boolean)};return null}
+function planSummary(){if(!S||!S.code||!SCH)return null;const items=S.pri.map(pid=>S.needs.find(n=>n.id===pid)).filter(Boolean).map(n=>{const P=S.plans[n.id]||{};return {need:n.text,area:planArea(n),why:P.why||'',if:P.if||'',then:P.then||'',so:P.so||'',measure:P.measure||'',now:P.now??'',goal:P.goal??'',by:P.by||'',chart:planChart(n,P)}});
+ return {v:1,code:S.code,school:SCH.n,year:YEAR,updated:new Date().toISOString(),items}}
+let saveT=null;function save(){if(!S.code)return;clearTimeout(saveT);saveT=setTimeout(()=>{const ok=store.set(KEY+S.code,JSON.stringify(S));try{const ps=planSummary();if(ps&&ps.items.length)store.set(PLANKEY+S.code,JSON.stringify(ps));else localStorage.removeItem(PLANKEY+S.code)}catch(e){}store.set(KEY+'last',S.code);$('saved').textContent=ok?'Saved in this browser':'Not saved: this browser blocks storage';},250);}
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600);}
 /* ---------- school helpers ---------- */
 function span(){if(S.span)return S.span;if(SCH&&SCH.min!=null)return {min:SCH.min,max:SCH.max};return null;}
@@ -462,7 +479,14 @@ function vPlan(){const id=identified();const maxP=id?2:1;const pri=S.pri.map(pid
    <label style="display:block;margin-top:14px;font-size:14px">CAIL review <select data-plan="${n.id}|cail">${['Not started','Ready to send','Sent to CAIL','Entered in MICIP'].map(o=>`<option ${P.cail===o?'selected':''}>${o}</option>`).join('')}</select></label></div>`:''}
  </section>`}).join('')}
  ${pri.length>maxP?`<p class="note">You chose ${pri.length} priorities. ${id?'Identified schools carry up to two.':'Non-identified schools carry one.'} Unselect one on the Summary.</p>`:''}
+ ${pri.length?handoff():''}
  <div class="navrow"><button class="btn ghost" data-step="summary">← Summary</button><button class="btn main" data-act="download">Download summary and plan (.docx)</button></div></div>`}
+function handoff(){const q='?school='+encodeURIComponent(S.code)+'&from=cna';const c=(col,t,d,href,b)=>`<div class="hcard" style="border-color:${col}"><b class="h3">${t}</b><p>${d}</p><a class="btn" style="background:${col};color:#fff;text-decoration:none" href="${href}" target="_top">${b} →</a></div>`;
+ return `<section class="handoff"><h2 style="margin:0 0 4px">Use this plan in the rest of your Title I work</h2><p class="muted" style="margin:0 0 14px">Each tool opens with your school picked and this plan waiting as a suggestion. Nothing changes until you choose it.</p><div class="hgrid">
+ ${c('#C85A0B','Title I Parent Compact','Start with school, family and scholar promises that match this plan.',TOOLKIT+'compact/'+q,'Build the compact')}
+ ${c('#C85A0B','Title I Parent Policy','Add how families helped review your needs assessment and set this priority.',TOOLKIT+'compact/'+q+'&tab=plan','Update the policy')}
+ ${c('#9A7A00','Title I Annual Meeting','Add an agenda item and a family slide: what our data showed, what we are doing, how families can help.',TOOLKIT+'meeting/'+q,'Add to my meeting')}
+ </div><p class="muted" style="font-size:13px;margin:12px 0 0">Using another computer? Download the plan below, then choose <b>Bring in a plan</b> in the other tool and pick the Word file.</p></section>`}
 function goalBar(P){const now=num(P.now),goal=num(P.goal);if(now==null&&goal==null)return '';const mx=Math.max(100,now||0,goal||0);
  return `<div class="goalbar" role="img" aria-label="Now ${now??'blank'}, goal ${goal??'blank'}">${now!=null?`<div style="position:absolute;left:0;top:0;bottom:0;width:${now/mx*100}%;background:var(--blue);border-radius:0 4px 4px 0"></div>`:''}${goal!=null?`<div style="position:absolute;left:${goal/mx*100}%;top:-4px;bottom:-4px;border-left:2px dashed var(--ink)"></div>`:''}</div><div class="row" style="justify-content:space-between;font-size:13px;font-weight:600;margin-top:6px"><span>Now: ${now??'—'}</span><span>Goal: ${goal??'—'} by ${esc(P.by||'')}</span></div>`}
 /* ---------- render ---------- */
@@ -539,8 +563,9 @@ function buildDocXml(){const out=[];const id=identified();const R=ranked();const
  out.push(h2('Title I Program Requirement 1'),para('The school completed a comprehensive needs assessment as the basis for its program and its use of Title I funds, reviewing demographic, academic, process and perception data.'+(pri.length?' Priority need: '+pri[0].text:''),{sz:21}));
  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${out.join('')}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`}
 async function buildDocx(){if(!window.JSZip)throw new Error('nozip');const z=new JSZip();
- z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
- z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+ z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>');
+ const ps=planSummary();z.file('docProps/custom.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="GRPSTitleIPlan"><vt:lpwstr>'+xmlEsc(JSON.stringify(ps||{}))+'</vt:lpwstr></property></Properties>');
+ z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>');
  z.file('word/document.xml',buildDocXml());return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
 let DL=null;
 async function download(btn){if(!S.code){toast('Choose a school first.');return}

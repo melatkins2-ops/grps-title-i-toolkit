@@ -203,6 +203,7 @@ hr.split{border:0;border-top:2px dashed #cfd5d9;margin:34px 0}
   .bar,.switch,.build,.ready,.tabs,.tabtools{display:none!important}
   .work{display:block}.view{padding:0}.sheet{box-shadow:none;max-width:none}
 }
+.frombox{background:#E7F0F8;border-left:5px solid #005696;border-radius:12px;padding:12px 14px;margin:0 0 12px}.fk{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:#005696;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -295,6 +296,30 @@ const DISTRICT={name:'Grand Rapids Public Schools',code:'41010'};
 const SCHOOLS=[{"n":"Aberdeen Academy","c":"02044","p":"SW"},{"n":"Blandford School","c":"08554","p":"NT"},{"n":"Brookside Elementary","c":"00417","p":"SW"},{"n":"Buchanan Elementary","c":"00436","p":"SW"},{"n":"Burton Elementary","c":"05829","p":"SW"},{"n":"Burton Middle School","c":"00467","p":"SW"},{"n":"CA Frost Environmental Science Academy Elementary","c":"03432","p":"SW"},{"n":"CA Frost Environmental Science Academy Middle High School","c":"09281","p":"SW"},{"n":"Campus Elementary","c":"02028","p":"SW"},{"n":"Center for Economicology","c":"09899","p":"TA"},{"n":"Central Station Early Childhood","c":"04765","p":""},{"n":"Cesar E. Chavez Elementary","c":"01539","p":"SW"},{"n":"City High Middle School","c":"05156","p":"TA"},{"n":"Coit Creative Arts Academy","c":"09061","p":"SW"},{"n":"Congress Elementary","c":"09283","p":"SW"},{"n":"Dickinson Academy","c":"00917","p":"SW"},{"n":"Gerald R. Ford Academic Center","c":"01996","p":"SW"},{"n":"Grand Rapids Learning Center","c":"01055","p":"SW"},{"n":"Grand Rapids Montessori Academy","c":"08361","p":"SW"},{"n":"Grand Rapids Montessori Middle/High","c":"03467","p":"SW"},{"n":"Grand Rapids Public Museum High","c":"02589","p":"SW"},{"n":"Grand Rapids Public Museum Middle","c":"03470","p":"SW"},{"n":"Grand Rapids University Preparatory Academy","c":"09898","p":"SW"},{"n":"Harrison Park Academy","c":"02056","p":"SW"},{"n":"Innovation Central High","c":"02008","p":"SW"},{"n":"Innovation Central Middle School","c":"03218","p":"SW"},{"n":"John Ball Park Zoo School","c":"08555","p":"TA"},{"n":"Kent Hills Elementary","c":"02021","p":"SW"},{"n":"Martin Luther King Leadership Academy","c":"01630","p":"SW"},{"n":"Mulick Park Elementary School","c":"02035","p":"SW"},{"n":"Newcomers Community School","c":"08923","p":"SW"},{"n":"North Park Montessori Academy","c":"07386","p":"SW"},{"n":"Ottawa High Transition","c":"03557","p":""},{"n":"Ottawa Hills High School","c":"03197","p":"SW"},{"n":"Ottawa Hills Middle School","c":"02051","p":"SW"},{"n":"Palmer School","c":"02931","p":"SW"},{"n":"Ridgemoor Park Montessori","c":"03226","p":"SW"},{"n":"Shawmut Hills School","c":"03450","p":"SW"},{"n":"Sherwood Global Studies Academy","c":"02057","p":"SW"},{"n":"Sibley School","c":"03474","p":"SW"},{"n":"Southeast Career Pathways","c":"08366","p":"SW"},{"n":"Southwest Elementary - Academia Bilingue","c":"09290","p":"SW"},{"n":"Southwest Middle/High - Academia Bilingue","c":"03735","p":"SW"},{"n":"Union High School","c":"04251","p":"SW"},{"n":"Union High Transition","c":"03564","p":""},{"n":"Westwood Middle School","c":"04489","p":"SW"}];
 
 /* ================= STATE ================= */
+/* ===== Title I plan bridge: reads the plan saved by the Comprehensive Needs Assessment ===== */
+const TPB={KEY:'grps-title1-plan:',
+ read(code){if(!code)return null;try{const r=localStorage.getItem(this.KEY+code);const p=r?JSON.parse(r):null;return p&&p.items&&p.items.length?p:null}catch(e){return null}},
+ store(p){try{localStorage.setItem(this.KEY+p.code,JSON.stringify(p));return true}catch(e){return false}},
+ async fromDocx(file){if(typeof JSZip==='undefined')throw new Error('zip');const z=await JSZip.loadAsync(file);const f=z.file('docProps/custom.xml');if(!f)throw new Error('none');const x=await f.async('string');const m=x.match(/name="GRPSTitleIPlan"[\s\S]*?<vt:lpwstr>([\s\S]*?)<\/vt:lpwstr>/);if(!m)throw new Error('none');
+  const t=m[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');const p=JSON.parse(t);if(!p.code||!p.items||!p.items.length)throw new Error('empty');return p},
+ param(k){try{return new URLSearchParams(location.search).get(k)}catch(e){return null}},
+ cap(t){t=String(t||'').trim();return t?t[0].toUpperCase()+t.slice(1):t},
+ goal(it){const so=this.cap(it.so).replace(/\.?$/,'.');if(it.so)return so;let g=this.cap(it.need).replace(/\.?$/,'');if(it.measure&&it.goal!=='')g+=`: ${it.measure} from ${it.now!==''?it.now:'[now]'} to ${it.goal} by ${it.by||'spring'}`;return g+'.'},
+ AREA:{
+  attendance:{label:'attendance',school:['Call or text you after 2 absences and work with you on what gets in the way','Celebrate scholars and families when attendance improves'],caregiver:['Tell the school when my scholar will be absent and why','Ask the school for help early if getting to school is hard'],scholar:['Come to school every day I can and be on time'],help:'Tell us when your scholar will be out, and ask for help early if getting to school is hard.'},
+  reading:{label:'reading',school:['Give every scholar reading help at their level in small groups every day','Share reading progress after each NWEA test and what we are working on'],caregiver:['Read or talk about books with my scholar for 20 minutes a day','Ask my scholar’s teacher about reading goals at conferences'],scholar:['Read every day and ask for help when a word or idea is hard'],help:'Read or talk about books together for 20 minutes a day, and ask us about your scholar’s reading goal.'},
+  math:{label:'math',school:['Give every scholar math help at their level in small groups','Share math progress after each NWEA test and games to practice at home'],caregiver:['Practice math facts or play math games with my scholar each week','Ask my scholar’s teacher about math goals at conferences'],scholar:['Practice math every day and show my thinking'],help:'Play a math game or practice facts together each week, and ask us about your scholar’s math goal.'},
+  el:{label:'English language growth',school:['Teach English every day and send information in our families’ home languages','Explain WIDA results to families in their home language'],caregiver:['Keep reading and talking with my scholar in our home language','Ask for an interpreter whenever I need one'],scholar:['Practice speaking, reading and writing in English every day'],help:'Keep reading and talking in your home language, and ask for an interpreter any time.'},
+  behavior:{label:'behavior and safety',school:['Teach and recognize our school-wide expectations','Call you with good news, not only when there is a problem'],caregiver:['Talk with my scholar about our school expectations','Work with staff as a team when problems come up'],scholar:['Follow our school-wide expectations and solve problems peacefully'],help:'Talk with your scholar about our school expectations, and work with us as a team.'},
+  graduation:{label:'graduation',school:['Review credits with every scholar each marking period','Offer credit recovery and tutoring when scholars fall behind'],caregiver:['Check my scholar’s grades and credits each marking period','Contact the counselor early if my scholar is falling behind'],scholar:['Know my credits and ask for help early if I am falling behind'],help:'Check grades and credits each marking period, and call the counselor early with questions.'},
+  family:{label:'family partnership',school:['Hold family events at times that work for families','Ask families what they need and share what we changed'],caregiver:['Attend at least two school events or conferences this year','Share my ideas through surveys and meetings'],scholar:['Share school news and papers with my family'],help:'Come to at least two events or conferences, and tell us what would help.'},
+  general:{label:'our school goal',school:['Share our school goal and progress with families each marking period'],caregiver:['Ask how I can help with our school goal'],scholar:['Do my best work every day and ask for help when I need it'],help:'Ask us how you can help with our goal this year.'}},
+ area(it){return this.AREA[it.area]||this.AREA.general},
+ chartHTML(c,dark){if(!c||!c.rows||!c.rows.length)return '';const mx=Math.max(c.unit==='%'?100:0,...c.rows.map(r=>r.v||0))||1;const fg=dark?'#fff':'#15293B';
+  return `<div style="font-size:13px;margin-bottom:6px;opacity:.9">${c.title.replace(/[<>&]/g,'')}</div>`+c.rows.map((r,i)=>{const last=!r.part&&!r.goal&&i===c.rows.filter(q=>!q.part&&!q.goal).length-1;const bg=r.part?`repeating-linear-gradient(135deg,${dark?'#fff':'#005696'} 0 6px,${dark?'#BFD6EA':'#7FA9CC'} 6px 9px)`:r.goal?(dark?'#9FE0BC':'#1D7A4C'):(last&&c.bad?'#F57B20':(dark?'#fff':'#005696'));
+   return `<div style="display:flex;align-items:center;gap:10px;margin:4px 0"><span style="width:118px;font-size:13px;color:${fg}">${String(r.n).replace(/[<>&]/g,'')}</span><span style="flex:1;height:22px;background:${dark?'rgba(255,255,255,.12)':'#EEF0EE'};border-radius:5px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(100,(r.v||0)/mx*100)}%;background:${bg};border-radius:5px"></span></span><b style="width:58px;text-align:right;color:${fg}">${r.v}${c.unit}</b></div>`}).join('')}
+};
+
 const blank=()=>({school:'',schoolCode:'',schoolOther:false,model:'Schoolwide',combined:true,event:'Back to School Open House',
  s1date:'',s1start:'',s1end:'',place:'',segStart:'',segEnd:'',
  second:false,s2date:'',s2start:'',s2end:'',s2place:'',s2format:'Morning coffee',
@@ -304,6 +329,22 @@ const blank=()=>({school:'',schoolCode:'',schoolOther:false,model:'Schoolwide',c
  talk:{},evidence:{},open:'s1',tab:'agenda',showOk:false,showAll:false});
 let S=blank();
 try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(blank(),JSON.parse(r));}catch(e){}
+(function(){const c=TPB.param('school');if(c&&SCHOOLS.find(x=>x.c===c)&&S.schoolCode!==c){const f=SCHOOLS.find(x=>x.c===c);S.schoolCode=c;S.school=f.n;S.schoolOther=false;if(f.p==='SW')S.model='Schoolwide';if(f.p==='TA')S.model='Targeted assistance';}if(TPB.param('from')==='cna'){S.usePlan=true;S.tab='slide';}})();
+const PLAN0=()=>TPB.read(S.schoolCode);
+function planOn(){return !!PLAN0()&&S.usePlan!==false}
+function chartLine(c){if(!c||!c.rows)return '';const full=c.rows.filter(r=>!r.part&&!r.goal);const part=c.rows.find(r=>r.part);const last=full[full.length-1];let t='';if(last)t+=`In ${last.n}, ${last.v}${c.unit} (${c.title.toLowerCase()}).`;if(full.length>1)t=`It went from ${full[0].v}${c.unit} in ${full[0].n} to ${last.v}${c.unit} in ${last.n} (${c.title.toLowerCase()}).`;if(part)t+=` So far this year it is ${part.v}${c.unit}.`;return t}
+function planSay(){const P=PLAN0();if(!P)return '';const it=P.items[0];const A=TPB.area(it);
+ return `Every year our staff and families study our school’s data. The biggest need we found: ${it.need.replace(/\.$/,'')}. ${chartLine(it.chart)} ${it.if?'Our plan: '+TPB.cap(it.if).replace(/\.$/,'')+(it.so?', so that '+it.so.replace(/\.$/,''):'')+'.':''} How you can help: ${A.help}`.replace(/\s+/g,' ').trim()}
+function syncPlan(){const on=planOn();const b=BLOCKS[1];const has=b.topics.includes('a12');
+ TOPICS.a12={t:'What our needs assessment showed and what we are doing',src:'grps',say:planSay()||'[What our needs assessment showed and our plan]'};
+ if(on&&!has)b.topics.push('a12');if(!on&&has)b.topics.splice(b.topics.indexOf('a12'),1);
+ const ti=TABS.findIndex(t=>t[0]==='slide');if(on&&ti<0)TABS.splice(3,0,['slide','Family slide']);if(!on&&ti>=0)TABS.splice(ti,1);}
+function docSlide(){const P=PLAN0();if(!P)return '<p>No plan found.</p>';const it=P.items[0];const A=TPB.area(it);const nm=(S.school||P.school).replace(/ (School|Academy)$/,'');
+ return `<div style="background:#005696;color:#fff;border-radius:16px;padding:26px 26px 22px;font-family:Figtree,Arial,sans-serif"><div style="font-size:24px;font-weight:800;line-height:1.15;margin-bottom:16px">${esc(A.label==='attendance'?'Every day counts at '+nm:'Our goal this year at '+nm)}</div>
+ <div style="display:flex;flex-wrap:wrap;gap:18px"><div style="flex:1.2;min-width:240px">${TPB.chartHTML(it.chart,true)||`<div style="font-size:16px">${esc(it.need)}</div>`}</div>
+ <div style="flex:1;min-width:200px;background:rgba(255,255,255,.12);border-radius:12px;padding:14px;font-size:15px;line-height:1.45"><b>What we are doing</b><br>${esc(TPB.cap(it.if)||'[Our plan]')}<br><br><b>How you can help</b><br>${esc(A.help)}</div></div></div>
+ <p class="small" style="margin-top:10px">Made from your Comprehensive Needs Assessment (${esc(P.school)}). Show it during “${esc(TOPICS.a12.t)}.” Copy it into your slides, or print this page.</p>`}
+
 let saveT;
 function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));const el=document.getElementById('saved');el.textContent='Saved in this browser';}catch(e){document.getElementById('saved').textContent='Not saved: this browser blocks storage';}},250);}
 
@@ -450,8 +491,10 @@ function secBody(id){
   <div class="field"><label for="i_uploadBy">Upload to the school’s Title I folder by</label>${inp('uploadBy','date')}${S.s1date?`<span class="hint">Suggested: ${fmtShort(plusDays(S.s1date,7))}, one week after.</span>`:''}</div>
   <div class="field"><label for="i_followBy">Answer families’ questions by</label>${inp('followBy','date')}${S.s1date?`<span class="hint">Suggested: ${fmtShort(plusDays(S.s1date,14))}, two weeks after.</span>`:''}</div>`;
 }
+function planBanner(){const P=PLAN0();const inp='<input type="file" id="bringplan" accept=".docx" hidden>';if(!P)return `<p class="hint" style="margin:0 0 10px">Finished your Comprehensive Needs Assessment on another computer? <button class="btn text sm" data-act="bring">Bring in a plan</button></p>`+inp;
+ const it=P.items[0];return `<div class="frombox"><div class="fk">FROM YOUR NEEDS ASSESSMENT · ${esc(P.school)}</div><b>Priority: ${esc(it.need)}</b><label class="toggle" style="margin-top:8px"><input type="checkbox" data-useplan="1" ${S.usePlan!==false?'checked':''}> Add “What our needs assessment showed” to the agenda, talking points and a family slide</label><div class="small" style="margin-top:4px"><button class="btn text sm" data-act="bring">Bring in a different plan</button></div></div>`+inp}
 function renderBuild(C){
-  $('build').innerHTML=`<div class="intro"><h1>Plan your annual Title I meeting</h1><p>Fill in what you know. Your packet builds itself as you go.</p><p class="links"><button class="btn text sm" data-act="example">See an example</button><button class="btn text sm" data-act="new">Start over</button></p></div>`+
+  $('build').innerHTML=`<div class="intro"><h1>Plan your annual Title I meeting</h1><p>Fill in what you know. Your packet builds itself as you go.</p><p class="links"><button class="btn text sm" data-act="example">See an example</button><button class="btn text sm" data-act="new">Start over</button></p></div>`+planBanner()+
   SECS.map((s,i)=>{const ok=secDone(s.id,C);return `<div class="sec ${S.open===s.id?'open':''}" id="sec_${s.id}"><button class="head" data-sec="${s.id}" aria-expanded="${S.open===s.id}"><span class="num ${ok?'ok':''}">${ok?'✓':i+1}</span><span><b>${s.t}</b><small>${s.sub}</small></span><span class="chev">›</span></button><div class="body">${S.open===s.id?secBody(s.id):''}</div></div>`;}).join('')+
   `<div class="sec res-sec ${S.open==='res'?'open':''}" id="sec_res"><button class="head" data-sec="res" aria-expanded="${S.open==='res'}"><span class="num" aria-hidden="true">i</span><span><b>GRPS templates and resources</b><small>From the Title I Annual Meeting site</small></span><span class="chev">›</span></button><div class="body">${S.open==='res'?docRes():''}</div></div>`;
 }
@@ -469,6 +512,7 @@ function renderReady(C){
    ${C.length>1&&(open.length>1||S.showAll)?`<button class="more-ok" data-act="toggleAll">${S.showAll?'Show less':'See all '+open.length+' to finish'}</button>`:''}</div></div>`;
 }
 const TABS=[['agenda','Agenda'],['flyer','Flyer'],['talk','Talking points'],['signin','Sign-in and evaluation'],['minutes','Minutes and evidence']];
+
 function header(title){return `<img class="logo" src="${LOGO}" alt="GRPS"><h3>${esc(title)}</h3><div class="meta">${ph(S.school,'School name')} · ${ph(fmtDate(S.s1date),'Date')} · ${(()=>{const [a,b]=segTimes();return a&&b?esc(fmtTime(a)+'–'+fmtTime(b)):'<span class="fill">Time</span>';})()} · ${ph(S.place,'Location')}</div>`;}
 function docAgenda(){const A=agenda();return header('Title I Annual Meeting Agenda')+`
   ${S.combined?`<p class="small">Part of ${esc(S.event||'the evening event')}. This agenda covers the Title I Annual Meeting segment.</p>`:''}
@@ -526,7 +570,7 @@ function docTeam(){const A=agenda();const by={};BLOCKS.forEach((b,i)=>{const w=p
   return header('Who Does What')+`<table><thead><tr><th style="width:32%">Person</th><th>Responsibilities</th></tr></thead><tbody>${Object.entries(by).map(([w,l])=>`<tr><td><b>${esc(w)}</b></td><td><ul style="margin:0">${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></td></tr>`).join('')}</tbody></table>
   <p class="small" style="margin-top:8px">Presenters: use the Talking points tab for plain-language openers for each topic.</p>`;}
 function docRes(){return `<div class="res">${TEMPLATES.map(t=>`<div><a href="${t.u}" target="_blank" rel="noopener">${esc(t.t)}</a>${t.es?` · <a href="${t.es}" target="_blank" rel="noopener">Spanish</a>`:''}</div>`).join('')}</div><p class="lbl" style="margin-top:6px;font-weight:600;font-size:14px">For caregivers</p><div class="res">${FAMILY_LINKS.map(t=>`<div><a href="${t.u}" target="_blank" rel="noopener">${esc(t.t)}</a></div>`).join('')}</div><p class="lbl" style="margin-top:6px;font-weight:600;font-size:14px">The law</p><div class="res">${LAW.map(t=>`<div><a href="${t.u}" target="_blank" rel="noopener">${esc(t.t)}</a></div>`).join('')}</div><p class="hint">GRPS templates open with your GRPS Google account.</p>`;}
-const DOCS={agenda:docAgenda,flyer:docFlyer,talk:docTalk,signin:()=>docSignin()+'<hr class="split">'+docEval(),minutes:()=>docMinutes()+'<hr class="split">'+docEvidence()};
+const DOCS={slide:()=>docSlide(),agenda:docAgenda,flyer:docFlyer,talk:docTalk,signin:()=>docSignin()+'<hr class="split">'+docEval(),minutes:()=>docMinutes()+'<hr class="split">'+docEvidence()};
 const TABNOTE_UNUSED={agenda:'Times fill in from your segment start and activity.',flyer:'Shows location, date, time and agenda items, as GRPS requires.',talk:'Edit freely. Replace anything in [brackets] with your school’s details.',signin:'Matches the GRPS template: scholar first name only.',eval:'Hand out before the close and collect every form.',minutes:'Take notes on this during the meeting.',evidence:'Use the night after. Check items off as you collect them.',team:'Send each presenter their part.',res:'Links open in a new tab. GRPS templates need your GRPS sign-in.'};
 function renderView(C){
   const tabsHtml=TABS.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join('');
@@ -537,7 +581,7 @@ function renderView(C){
 }
 
 /* ================= RENDER ================= */
-function render(){const C=checks();renderBuild(C);renderView(C);save();}
+function render(){syncPlan();const C=checks();renderBuild(C);renderView(C);save();}
 function refreshView(){const C=checks();
   // update section check marks without re-rendering the form
   SECS.forEach((s,i)=>{const n=document.querySelector('#sec_'+s.id+' .num');if(n){const ok=secDone(s.id,C);n.classList.toggle('ok',ok);n.textContent=ok?'✓':i+1;}});
@@ -557,9 +601,13 @@ document.addEventListener('input',e=>{
   if(t.dataset.talk){S.talk[t.dataset.talk]=t.value;save();return;}
   if(t.dataset.ev){S.evidence[t.dataset.ev]=t.checked;refreshView();return;}
 });
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset.school){const v=t.value;if(v==='other'){S.schoolOther=true;S.schoolCode='';S.school='';}else{S.schoolOther=false;S.schoolCode=v;const f=SCHOOLS.find(x=>x.c===v);S.school=f?f.n:'';if(f&&f.p==='SW')S.model='Schoolwide';if(f&&f.p==='TA')S.model='Targeted assistance';}render();return;}if(t.dataset.pres&&t.tagName==='SELECT'){const p=S.presenters[t.dataset.pres]=S.presenters[t.dataset.pres]||{};p.role=t.value;refreshView();}});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset.useplan){S.usePlan=t.checked;render();return;}
+ if(t.id==='bringplan'&&t.files&&t.files[0]){TPB.fromDocx(t.files[0]).then(p=>{TPB.store(p);const f=SCHOOLS.find(x=>x.c===p.code);if(f){S.schoolCode=p.code;S.school=f.n;S.schoolOther=false;}S.usePlan=true;S.tab='slide';render();alert('Plan brought in for '+p.school+'.');}).catch(()=>alert('That file doesn’t have a needs assessment plan in it. Use the Word file downloaded from the Comprehensive Needs Assessment’s Plan step.'));return;}
+ if(t.dataset.school){const v=t.value;if(v==='other'){S.schoolOther=true;S.schoolCode='';S.school='';}else{S.schoolOther=false;S.schoolCode=v;const f=SCHOOLS.find(x=>x.c===v);S.school=f?f.n:'';if(f&&f.p==='SW')S.model='Schoolwide';if(f&&f.p==='TA')S.model='Targeted assistance';}render();return;}if(t.dataset.pres&&t.tagName==='SELECT'){const p=S.presenters[t.dataset.pres]=S.presenters[t.dataset.pres]||{};p.role=t.value;refreshView();}});
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.act==='bring'){const f=document.getElementById('bringplan');if(f)f.click();return;}
   if(b.dataset.sec){S.open=S.open===b.dataset.sec?'':b.dataset.sec;render();return;}
   if(b.dataset.fix){S.open=b.dataset.fix;$('work').dataset.pane='build';setPane('build');render();const el=$('sec_'+b.dataset.fix);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});return;}
   if(b.dataset.chip){const k=b.dataset.chip,v=b.dataset.v;S[k]=S[k].includes(v)?S[k].filter(x=>x!==v):[...S[k],v];render();return;}
@@ -638,6 +686,9 @@ function buildDocXml(){
   // Talking points
   out.push(h1('Talking Points'),meta());
   BLOCKS.forEach(b=>{out.push(h2(b.title+(presenter(b.id)?' ('+presenter(b.id)+')':'')));b.topics.forEach(id=>{out.push(para(TOPICS[id].t,{b:true,after:40}),para(talk(id),{after:160}));});});
+  if(planOn()){const P=PLAN0();const it=P.items[0];const A=TPB.area(it);out.push(h1('Family Slide: What Our Data Showed'),meta(),para(it.need,{b:true}));
+   if(it.chart&&it.chart.rows)out.push(para(it.chart.title,{i:true,after:40}),table(['','Value'],it.chart.rows.map(r=>[String(r.n),r.v+it.chart.unit])));
+   out.push(para([{t:'What we are doing: ',b:true},TPB.cap(it.if)||'[Our plan]']),para([{t:'How you can help: ',b:true},A.help]));}
   
   // Sign-in
   out.push(h1('Title I Annual Meeting Sign-In Sheet'));
