@@ -483,7 +483,7 @@ function secBody(id){
   <div class="field"><span class="lbl">What will you pay for with Title I?</span><div class="chips">${BUYS.map(b=>`<button class="chip ${b.bad?'bad':''}" data-chip="buys" data-v="${b.id}" aria-pressed="${S.buys.includes(b.id)}">${b.t}</button>`).join('')}</div></div>
   ${S.buys.includes('gift')?`<p class="inline-note stop">Gift cards and raffles are not allowable Title I costs in GRPS. Childcare, food within the limits, interpretation and a topic families asked for are better draws.</p>`:''}
   ${S.buys.includes('meal')&&el&&el<=60?`<p class="inline-note stop">Your event is ${el} minutes. GRPS allows a meal only for events longer than one hour; plan a snack instead.</p>`:''}
-  ${S.buys.includes('snack')||S.buys.includes('meal')?`<p class="hint">GRPS sets a per-person limit for snacks (events of an hour or less) and meals (longer events). Check the current amounts with Federal Programs, and keep itemized receipts.</p>`:''}
+  ${S.buys.includes('snack')||S.buys.includes('meal')?`<p class="hint">GRPS limits: a snack up to $5 per person for events of one hour or less; a meal up to $15 per person for longer events. The per-person rate covers food, supplies and materials. Don’t over-order, and keep itemized receipts.</p>`:''}
   <label class="toggle"><input type="checkbox" data-k="preauth" ${S.preauth?'checked':''}> Pre-Authorization Form submitted and approved</label>`;}
  if(id==='s6')return `
   <div class="field"><label for="i_signinOwner">Who runs the sign-in table</label>${inp('signinOwner','text','placeholder="Name or role"')}</div>
