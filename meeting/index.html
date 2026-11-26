@@ -262,7 +262,7 @@ const BUYS=[
  {id:'snack',t:'Snacks'},{id:'meal',t:'Meal'},{id:'childcare',t:'Childcare'},{id:'interp',t:'Interpreter'},{id:'print',t:'Printing'},{id:'gift',t:'Gift cards or raffle',bad:true}
 ];
 const CHANNELS=['Backpack flyer','Robocall','Text message','Email','Newsletter','Social media','Marquee','Personal phone calls'];
-const ROLES=['Principal','Assistant principal','Teacher','Interventionist','Family liaison','Community school coordinator','Office staff','Other'];
+const ROLES=['Principal','Assistant principal','Teacher','Interventionist','Support staff','Community school coordinator','Office staff','Other'];
 const TEMPLATES=[
  {t:'Video overview: preparing for your annual meeting',u:'https://drive.google.com/file/d/11q05JS21Qo3cVjAu0cDzuc2AeNTCOR9i/view'},
  {t:'Title I Annual Meeting Checklist',u:'https://docs.google.com/document/d/1-AcbzVAAksnifsdiIkaeu4tuv-JZ64mGhZ4Y9IPwGcE/edit',es:'https://docs.google.com/document/d/1wVun0-eDsqZcH0_Y-nomyXj4--1lhVtn/edit'},
@@ -641,8 +641,8 @@ function example(){const x=blank();const y=new Date().getFullYear();
  s1date:`${y}-09-24`,s1start:'17:30',s1end:'19:00',segStart:'17:30',segEnd:'18:15',place:'Cafeteria',
  second:true,s2format:'Morning coffee',s2date:`${y}-09-25`,s2start:'08:15',s2end:'09:00',s2place:'Library',
  flyerDate:`${y}-09-15`,channels:['Backpack flyer','Robocall','Text message','Social media'],langs:'Spanish',interp:true,translated:true,accessRoom:true,childcare:true,
- presenters:{b1:{role:'Principal',name:''},b2:{role:'Assistant principal',name:''},b3:{role:'Family liaison',name:''},b4:{role:'Interventionist',name:''}},
- activity:'keep',buys:['meal','childcare','interp'],preauth:true,signinOwner:'Office staff',recordsOwner:'Family liaison',uploadBy:`${y}-10-01`,followBy:`${y}-10-08`,open:'s1',tab:'agenda'});return x;}
+ presenters:{b1:{role:'Principal',name:''},b2:{role:'Assistant principal',name:''},b3:{role:'Support staff',name:''},b4:{role:'Interventionist',name:''}},
+ activity:'keep',buys:['meal','childcare','interp'],preauth:true,signinOwner:'Office staff',recordsOwner:'Support staff',uploadBy:`${y}-10-01`,followBy:`${y}-10-08`,open:'s1',tab:'agenda'});return x;}
 
 /* ================= DOCX ================= */
 function xe(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
