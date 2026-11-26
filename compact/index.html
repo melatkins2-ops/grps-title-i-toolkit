@@ -365,7 +365,7 @@ function checks(){
  const responded=S.log.filter(x=>x.text&&x.decision&&x.told).length;
  add('loop',responded>0,'practice','Caregivers hear what changed',S.log.length?'For at least one suggestion, record the decision and how caregivers were told.':'Log caregivers’ suggestions and what the school did with them.','This log is your evidence of joint development and two-way communication in an MDE review.','c5','compact');
  const req=PLAN.length;const done=PLAN.filter(p=>planText(p.id).length).length;
- add('plan',done===req,'law','Every family engagement plan requirement is answered',`${req-done} of ${req} plan requirements still need an answer.`,'The school plan describes how it carries out each part of §1116 (MDE ESSA-aligned plan template).','p','plan');
+ add('plan',done===req,'law','Every Title I Parent Policy requirement is answered',`${req-done} of ${req} plan requirements still need an answer.`,'The school plan describes how it carries out each part of §1116 (MDE ESSA-aligned plan template).','p','plan');
  return L;
 }
 
@@ -417,8 +417,8 @@ function planBody(){const done=PLAN.filter(p=>planText(p.id).length).length;
  return `<p class="hint" style="margin-bottom:8px">Based on the MDE ESSA-aligned Parent and Family Engagement Plan template used by GRPS. ${done} of ${PLAN.length} answered. Choose what your school does, then add your own details.</p>`+
  PLAN.map(p=>`<div class="sec ${S.open==='p_'+p.id?'open':''}" id="sec_p_${p.id}"><button class="head" data-sec="p_${p.id}" aria-expanded="${S.open==='p_'+p.id}"><span class="num ${planText(p.id).length?'ok':''}">${planText(p.id).length?'✓':''}</span><span><b>${esc(p.cite)}</b><small>${esc(p.req)}</small></span><span class="chev">›</span></button><div class="body">${S.open==='p_'+p.id?`<p class="hint">${esc(p.lead)}</p><div class="promises">${p.opts.map(o=>`<button class="promise" data-plan="${p.id}" data-v="${esc(o)}" aria-pressed="${(S.plan[p.id]||[]).includes(o)}"><span class="box">${(S.plan[p.id]||[]).includes(o)?'✓':''}</span><span>${esc(o)}</span></button>`).join('')}</div>${policySug(p.id)}${p.ex?`<div class="exbox"><b>Example</b><p>${esc(p.ex)}</p><button class="btn line sm" data-exuse="${p.id}">Use this example</button><span class="hint"> Then change the [brackets] and numbers to fit your school.</span></div>`:''}<div class="field"><label for="px_${p.id}">Details for your school</label><textarea id="px_${p.id}" data-planx="${p.id}" placeholder="Dates, people, specifics">${esc(S.planX[p.id]||'')}</textarea></div>`:''}</div></div>`).join('');}
 function renderBuild(C){
- const modes=`<div class="modes" role="group" aria-label="Document"><button data-mode="compact" aria-pressed="${S.mode==='compact'}">School-Parent Compact</button><button data-mode="plan" aria-pressed="${S.mode==='plan'}">Family Engagement Plan</button></div>`;
- const intro=`<div class="intro"><h1>${S.mode==='compact'?'Build your school-parent compact':'Build your family engagement plan'}</h1><p>${S.mode==='compact'?'The compact is a shared set of promises. Write it with caregivers, then use it at fall conferences.':'The plan describes how your school carries out each family engagement requirement.'}</p><p class="links"><button class="btn text sm" data-act="example">See an example</button><button class="btn text sm" data-act="new">Start over</button></p></div>`;
+ const modes=`<div class="modes" role="group" aria-label="Document"><button data-mode="compact" aria-pressed="${S.mode==='compact'}">School-Parent Compact</button><button data-mode="plan" aria-pressed="${S.mode==='plan'}">Title I Parent Policy</button></div>`;
+ const intro=`<div class="intro"><h1>${S.mode==='compact'?'Build your school-parent compact':'Build your Title I Parent Policy'}</h1><p>${S.mode==='compact'?'The compact is a shared set of promises. Write it with caregivers, then use it at fall conferences.':'The policy describes how your school carries out each family engagement requirement.'}</p><p class="links"><button class="btn text sm" data-act="example">See an example</button><button class="btn text sm" data-act="new">Start over</button></p></div>`;
  let body;
  if(S.mode==='compact')body=SECS.map((s,i)=>{const ok=secIds(s.id).every(k=>C.find(c=>c.id===k).state==='ok');return `<div class="sec ${S.open===s.id?'open':''}" id="sec_${s.id}"><button class="head" data-sec="${s.id}" aria-expanded="${S.open===s.id}"><span class="num ${ok?'ok':''}">${ok?'✓':i+1}</span><span><b>${s.t}</b><small>${s.sub}</small></span><span class="chev">›</span></button><div class="body">${S.open===s.id?secBody(s.id):''}</div></div>`;}).join('');
  else body=(S.schoolCode||S.school?'':`<p class="inline-note" style="margin-bottom:8px">Choose your school under School-Parent Compact first.</p>`)+planBody();
@@ -447,7 +447,7 @@ function docCompact(){const name=S.school||'';return `<div class="compact-doc"><
  <div class="cols"><div class="box2"><h4>Caregivers will</h4>${li(cg())}</div><div class="box2"><h4>Scholars will</h4>${li(sc())}</div></div>
  <p class="small" style="margin-top:12px">This compact was developed with caregivers through ${S.devEvents.length?esc(S.devEvents.map(lc).join(', ')):'<span class="fill">how caregivers helped</span>'}${S.devWhen?' ('+esc(S.devWhen)+')':''}. We review it with caregivers every year. Share your ideas with the school anytime.</p>
  <div class="sig"><div>Caregiver</div><div>Scholar</div><div>Teacher</div></div></div>`;}
-function docPlan(){return `<img class="logo" src="${LOGO}" alt="GRPS"><h3>${ph(S.school,'School name')} Parent and Family Engagement Plan</h3><div class="meta">${esc(S.year)} · In accordance with ESSA Section 1116</div>
+function docPlan(){return `<img class="logo" src="${LOGO}" alt="GRPS"><h3>${ph(S.school,'School name')} Title I Parent Policy</h3><div class="meta">${esc(S.year)} · In accordance with ESSA Section 1116</div>
  <p style="margin-bottom:10px">Caregivers, staff and the building administrator developed this plan. It describes how ${ph(S.school,'our school')} carries out each family engagement activity required by ESSA Section 1116.</p>
  <table><thead><tr><th style="width:38%">ESSA section</th><th>How our school carries it out</th></tr></thead><tbody>${PLAN.map(p=>{const t=planText(p.id);return `<tr><td><b>${esc(p.cite)}</b><div class="small">${esc(p.req)}</div></td><td>${t.length?`${esc(p.lead)}<ul>${t.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<span class="fill">To be completed</span>'}</td></tr>`;}).join('')}
  <tr><td><b>1116(d)</b><div class="small">School-Parent Compact</div></td><td>The compact was developed jointly with caregivers${S.devEvents.length?' through '+esc(S.devEvents.map(lc).join(', ')):''}${S.devWhen?' ('+esc(S.devWhen)+')':''}. ${isElem()?'It is discussed with each family at parent-teacher conferences. ':''}${S.distribute?esc(S.distribute)+'.':''}</td></tr></tbody></table>`;}
@@ -456,7 +456,7 @@ function docLog(){return `<img class="logo" src="${LOGO}" alt="GRPS"><h3>Caregiv
  <table><thead><tr><th>Caregiver suggestion</th><th>Decision</th><th>How caregivers were told</th></tr></thead><tbody>${S.log.length?S.log.map(x=>`<tr><td>${esc(x.text)}</td><td>${esc(x.decision)}</td><td>${esc(x.told)}</td></tr>`).join(''):'<tr><td colspan="3"><span class="fill">Add suggestions in step 5</span></td></tr>'}</tbody></table>`;}
 const EVID=[
  {id:'cmp',t:'Final school-parent compact',d:'English and every translated version'},
- {id:'pln',t:'Final parent and family engagement plan',d:'The copy caregivers received'},
+ {id:'pln',t:'Final Title I Parent Policy',d:'The copy caregivers received'},
  {id:'mtg',t:'Agendas, sign-in sheets and minutes',d:'From each meeting where caregivers reviewed the compact or plan'},
  {id:'log',t:'Caregiver input record',d:'Suggestions, decisions and how caregivers were told'},
  {id:'svy',t:'Survey questions and results',d:'If a survey was used for input'},
@@ -466,7 +466,7 @@ const EVID=[
 function docEvidence(){const n=EVID.filter(e=>S.evidence[e.id]).length;return `<img class="logo" src="${LOGO}" alt="GRPS"><h3>Evidence for Review</h3><div class="meta">${ph(S.school,'School name')} · ${esc(S.year)} · ${n} of ${EVID.length} collected</div>
  <div class="ev">${EVID.map(e=>`<label class="${S.evidence[e.id]?'done':''}"><input type="checkbox" data-ev="${e.id}" ${S.evidence[e.id]?'checked':''}><span><b>${esc(e.t)}</b><small>${esc(e.d)}</small></span></label>`).join('')}</div>
  <p class="small" style="margin-top:10px">Keep these in the school’s Title I folder. MDE may ask for them during program monitoring.</p>`;}
-const TABS=[['compact','Compact'],['plan','Family engagement plan'],['log','Caregiver input'],['evidence','Evidence']];
+const TABS=[['compact','Compact'],['plan','Title I Parent Policy'],['log','Caregiver input'],['evidence','Evidence']];
 const DOCS={compact:docCompact,plan:docPlan,log:docLog,evidence:docEvidence};
 function renderView(C){
  if(!DOCS[S.tab])S.tab='compact';
@@ -575,7 +575,7 @@ function buildDocXml(){
  out.push(para(`This compact was developed with caregivers through ${S.devEvents.map(lc).join(', ')||'[how caregivers helped]'}${S.devWhen?' ('+S.devWhen+')':''}. We review it with caregivers every year. Share your ideas with the school anytime.`,{sz:20,before:160}));
  out.push(table(['Caregiver signature and date','Scholar signature and date','Teacher signature and date'],[['','','']],[3200,3200,3200],700));
  // Plan
- out.push(h1(`${S.school||'[School]'} Parent and Family Engagement Plan`),para(`${S.year} · In accordance with ESSA Section 1116`,{sz:20,color:'5A6570'}));
+ out.push(h1(`${S.school||'[School]'} Title I Parent Policy`),para(`${S.year} · In accordance with ESSA Section 1116`,{sz:20,color:'5A6570'}));
  out.push(para(`Caregivers, staff and the building administrator developed this plan. It describes how ${S.school||'our school'} carries out each family engagement activity required by ESSA Section 1116.`));
  const rows=PLAN.map(p=>{const t=planText(p.id);return [[{t:p.cite,b:true},p.req],t.length?[p.lead,...t.map(x=>'• '+x)]:['[To be completed]']];});
  rows.push([[{t:'1116(d)',b:true},'School-Parent Compact'],[`The compact was developed jointly with caregivers${S.devEvents.length?' through '+S.devEvents.map(lc).join(', '):''}${S.devWhen?' ('+S.devWhen+')':''}. ${isElem()?'It is discussed with each family at parent-teacher conferences. ':''}${S.distribute?S.distribute+'.':''}`]]);
