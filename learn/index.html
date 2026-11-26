@@ -57,7 +57,7 @@ function path(r){const S=st(r);const i=Math.min(S.sel||0,r.steps.length-1);const
  const q=s.q;const qa=q[1].map((o,j)=>{let c='';if(a!=null){if(j===q[2]&&a===j)c='right';else if(j===a)c='wrong'}return `<button class="opt ${c}" data-ans="${j}" aria-pressed="${a===j}">${esc(o)}</button>`}).join('');
  const fb=a==null?'':(a===q[2]?`<div class="fb ok"><b>✓ Right.</b> ${esc(q[3])}</div>`:`<div class="fb no"><b>Not quite.</b> Try again.</div>`);
  const [tn,tu]=s.tool;
- return `<div class="top noprint"><div><button class="btn ghost sm" data-go="home">← All roles</button><h1 style="font-size:clamp(26px,3.4vw,34px);margin-top:12px">${r.e} ${esc(r.n)}: your Title I year</h1></div><div style="min-width:220px"><div class="k" style="text-align:right">${nDone(r)} of ${r.steps.length} steps done</div>${bar(r)}</div></div>
+ return `<div class="top noprint"><div><button class="btn ghost sm" data-go="home">← All roles</button><h1 style="font-size:clamp(26px,3.4vw,34px);margin-top:12px">${r.e} ${esc(r.n)}: your Title I year</h1></div><div style="min-width:220px"><div class="k" style="text-align:right">${nDone(r)} of ${r.steps.length} steps done</div>${bar(r)}<div style="text-align:right;margin-top:10px"><button class="btn ghost sm" data-ics="1" title="Download a calendar file you can open in Outlook, Google Calendar or Apple Calendar">📅 Add these dates to my calendar</button></div></div></div>
  <div class="grid"><div class="steps">${steps}</div><div>
  <div class="card"><div class="k">Step ${i+1} · ${esc(s.m)}</div><h2 style="font-size:22px;margin:6px 0 8px">${esc(s.t)}</h2><b style="font-size:15px">The 3 things that matter</b><ol>${s.k.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
   <div style="margin-top:14px"><a class="btn" href="${BASE+tu}" target="_blank" rel="noopener">Open ${esc(tn)} →</a></div></div>
@@ -72,6 +72,28 @@ function cert(r){const S=st(r);if(!S.cert)S.cert=new Date().toLocaleDateString('
  <div class="note" style="font-size:15px;margin-top:6px">${r.steps.length} steps · ${nRight(r)} of ${r.steps.length} quick checks · ${esc(S.cert)}</div>
  <div class="pills">${r.steps.map(s=>`<span class="pill">${esc(s.t)}</span>`).join('')}</div>
  <button class="btn noprint" style="background:var(--odk);margin-top:8px" data-print="1">Print or save as PDF</button></div>`}
+
+/* ---- calendar (.ics) ---- */
+const MON={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+function syear(){const d=new Date();return d.getMonth()+1>=7?d.getFullYear():d.getFullYear()-1}
+function yr(m,y0){return m>=7?y0:y0+1}
+function lastDay(y,m){return new Date(y,m,0).getDate()}
+function ymd(y,m,d){return String(y)+String(m).padStart(2,'0')+String(d).padStart(2,'0')}
+function windows(lbl,y0){
+ if(lbl==='After each MAP window')return [['after fall MAP',10,1,10,15],['after winter MAP',2,1,2,15],['after spring MAP',6,1,6,12]].map(([t,m1,d1,m2,d2])=>({t,a:ymd(yr(m1,y0),m1,d1),b:ymd(yr(m2,y0),m2,d2+1)}));
+ const m=lbl.match(/^([A-Z][a-z]{2})(?:–([A-Z][a-z]{2}))?$/);if(!m)return [];
+ const m1=MON[m[1]],m2=MON[m[2]||m[1]];const y1=yr(m1,y0),y2=yr(m2,y0);
+ const e=new Date(y2,m2-1,lastDay(y2,m2)+1);return [{t:'',a:ymd(y1,m1,1),b:ymd(e.getFullYear(),e.getMonth()+1,e.getDate())}]}
+function icsText(t){return String(t).replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')}
+function fold(l){let o='';while(l.length>74){o+=l.slice(0,74)+'\r\n ';l=l.slice(74)}return o+l}
+function makeIcs(r){const y0=syear();const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//GRPS//Title I Toolkit//EN','CALSCALE:GREGORIAN','X-WR-CALNAME:Title I · '+r.n];
+ const today=ymd(new Date().getFullYear(),new Date().getMonth()+1,new Date().getDate());[y0,y0+1].forEach(Y=>r.steps.forEach((s,i)=>windows(s.m,Y).filter(w=>w.b>today).forEach((w,j)=>{const url=new URL(BASE+s.tool[1],location.href).href;
+  L.push('BEGIN:VEVENT','UID:grps-t1-'+r.id+'-'+i+'-'+j+'-'+Y+'@title1toolkit','DTSTAMP:'+now,'DTSTART;VALUE=DATE:'+w.a,'DTEND;VALUE=DATE:'+w.b,
+  fold('SUMMARY:'+icsText('Title I: '+s.t+(w.t?' ('+w.t+')':''))),
+  fold('DESCRIPTION:'+icsText(s.d+'\n\nWhat matters:\n- '+s.k.join('\n- ')+'\n\nOpen '+s.tool[0]+': '+url+'\n\nTiming is a general window. Check your school’s dates with the Title I office.')),
+  'URL:'+url,'TRANSP:TRANSPARENT','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsText('Title I: '+s.t),'TRIGGER:-P7D','END:VALARM','END:VEVENT')})));
+ L.push('END:VCALENDAR');return L.join('\r\n')}
+function dlIcs(r){const blob=new Blob([makeIcs(r)],{type:'text/calendar'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Title-I-'+r.id+'-calendar.ics';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 function render(){const h=(location.hash||'').slice(1).split('/');const r=ROLES.find(x=>x.id===h[0]);const app=document.getElementById('app');
  app.innerHTML=!r?home():(h[1]==='certificate'&&complete(r)?cert(r):path(r));save()}
 let cur=()=>ROLES.find(x=>x.id===(location.hash||'').slice(1).split('/')[0]);
@@ -80,6 +102,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  if(b.dataset.go==='home'){location.hash='';return}
  if(b.dataset.go==='cert'){location.hash=r.id+'/certificate';return}
  if(b.dataset.print){window.print();return}
+ if(b.dataset.ics){const r=cur();if(r)dlIcs(r);return}
  if(!r)return;const S=st(r);
  if(b.dataset.step!=null){S.sel=+b.dataset.step;render();scrollTo({top:0,behavior:'smooth'});return}
  if(b.dataset.ans!=null){S.ans[S.sel||0]=+b.dataset.ans;render();return}
