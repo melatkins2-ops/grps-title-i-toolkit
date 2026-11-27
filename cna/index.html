@@ -44,6 +44,12 @@ input,textarea,select{font:inherit;color:inherit}
 .steps ol{list-style:none;display:flex;gap:4px;margin:0 auto;padding:8px 24px;max-width:1240px;overflow-x:auto}
 .steps button{border:0;background:none;padding:9px 14px;border-radius:999px;font-weight:600;font-size:15px;color:var(--ink2);display:flex;align-items:center;gap:8px;white-space:nowrap}
 .steps button[aria-current="step"]{background:var(--ink);color:#fff}
+.steps li.wk{margin-left:auto;padding-left:12px;flex:none}.wkb{display:flex;align-items:center;gap:8px;background:#e7f0f8;border:2px solid #005696;border-radius:999px;padding:5px 6px 5px 13px;font-size:14px;white-space:nowrap;color:var(--ink)}
+.wkb b{font-size:15px}.steps .wkb button,.wkm .wkb button{border-radius:999px;padding:4px 11px;font-size:13px;font-weight:700;color:#005696;background:#fff;border:1.5px solid #c7d3dd}
+.wb{position:fixed;inset:0;background:rgba(21,41,59,.55);display:grid;place-items:center;z-index:200;padding:16px}.wb>div{background:#fff;border-radius:22px;padding:28px 32px;max-width:520px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.wb .k1{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#c85a0b}.wb h2{font-size:28px;margin:8px 0 10px;line-height:1.15}.wb h2 span{color:#005696}.wb p{margin:0 0 8px;color:var(--ink2)}
+.wb .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.wkm{display:none}@media(max-width:700px){.steps li.wk{display:none}.wkm{display:block;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line)}.wkm .wkb{justify-content:space-between;white-space:normal}}
 .steps .dot{width:20px;height:20px;border-radius:999px;border:2px solid var(--line2);display:inline-grid;place-items:center;font-size:11px;font-weight:800}
 .steps .dot.done{background:var(--good);border-color:var(--good);color:#fff}
 .steps .dot.part{border-color:var(--orange)}
@@ -171,7 +177,7 @@ textarea{min-height:84px;resize:vertical}
   <span class="saved" id="saved">Saves in this browser</span>
   <button class="btn main small" id="dlBtn" data-act="download">Download</button>
 </div></header>
-<nav class="steps" aria-label="Steps"><ol id="steps"></ol></nav>
+<nav class="steps" aria-label="Steps"><ol id="steps"></ol></nav><div class="wkm" id="wkm"></div>
 <main id="main"></main>
 <div class="toast" id="toast" role="status" hidden></div>
 <script>
@@ -302,7 +308,7 @@ function planChart(n,P){if(n.topics.includes('attend')){const x=S.topics.attend;
  const now=num(P.now),goal=num(P.goal);if(now!=null||goal!=null)return {title:P.measure||n.text,unit:'',bad:'',rows:[now!=null?{n:'Now',v:now}:null,goal!=null?{n:'Goal, '+(P.by||''),v:goal,goal:1}:null].filter(Boolean)};return null}
 function planSummary(){if(!S||!S.code||!SCH)return null;const items=S.pri.map(pid=>S.needs.find(n=>n.id===pid)).filter(Boolean).map(n=>{const P=S.plans[n.id]||{};return {need:n.text,area:planArea(n),why:P.why||'',if:P.if||'',then:P.then||'',so:P.so||'',measure:P.measure||'',now:P.now??'',goal:P.goal??'',by:P.by||'',chart:planChart(n,P)}});
  return {v:1,code:S.code,school:SCH.n,year:YEAR,updated:new Date().toISOString(),items}}
-let saveT=null;function save(){if(!S.code)return;clearTimeout(saveT);saveT=setTimeout(()=>{const ok=store.set(KEY+S.code,JSON.stringify(S));try{const ps=planSummary();if(ps&&ps.items.length)store.set(PLANKEY+S.code,JSON.stringify(ps));else localStorage.removeItem(PLANKEY+S.code)}catch(e){}store.set(KEY+'last',S.code);$('saved').textContent=ok?'Saved in this browser':'Not saved: this browser blocks storage';},250);}
+let saveT=null;function save(){if(!S.code)return;clearTimeout(saveT);saveT=setTimeout(()=>{S.savedAt=Date.now();const ok=store.set(KEY+S.code,JSON.stringify(S));try{const ps=planSummary();if(ps&&ps.items.length)store.set(PLANKEY+S.code,JSON.stringify(ps));else localStorage.removeItem(PLANKEY+S.code)}catch(e){}store.set(KEY+'last',S.code);$('saved').textContent=ok?'Saved in this browser':'Not saved: this browser blocks storage';},250);}
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600);}
 /* ---------- school helpers ---------- */
 function span(){if(S.span)return S.span;if(SCH&&SCH.min!=null)return {min:SCH.min,max:SCH.max};return null;}
@@ -386,7 +392,8 @@ function chartHTML(t){const x=ts(t.id);
 /* ---------- steps ---------- */
 const STEPS=[['start','Start'],['dem','Demographic'],['aca','Academic'],['pro','Process'],['per','Perception'],['summary','Summary'],['plan','Plan']];
 function renderSteps(){$('steps').innerHTML=STEPS.map(([k,n])=>{let dot='';if(TYPES.find(t=>t.k===k)&&S.code){const p=typeProgress(k);dot=`<span class="dot ${p.d===p.n?'done':p.d?'part':''}">${p.d===p.n?'✓':''}</span>`}
- return `<li><button data-step="${k}" ${S.step===k?'aria-current="step"':''} ${!S.code&&k!=='start'?'disabled':''}>${dot}${n}</button></li>`}).join('')}
+ return `<li><button data-step="${k}" ${S.step===k?'aria-current="step"':''} ${!S.code&&k!=='start'?'disabled':''}>${dot}${n}</button></li>`}).join('')+(S.code&&SCH?`<li class="wk">${WKB()}</li>`:'');$('wkm').innerHTML=S.code&&SCH?WKB():''}
+const WKB=()=>`<span class="wkb"><span aria-hidden="true">📍</span><span style="flex:1"><span class="wl">Working on </span><b>${esc(SCH.n)}</b></span><button data-chg="1" aria-label="Change school (now ${esc(SCH.n)})">Change</button></span>`;
 function go(k){S.step=k;S.open='';save();render();window.scrollTo({top:0})}
 /* ---------- start ---------- */
 function vStart(){const opts=SCHOOLS.filter(s=>!s.sample||s.c===S.code).map(s=>`<option value="${s.c}" ${s.c===S.code?'selected':''}>${esc(s.n)}</option>`).join('');
@@ -607,8 +614,17 @@ async function download(btn){if(!S.code){toast('Choose a school first.');return}
  finally{btn.disabled=false;btn.textContent=old}}
 /* ---------- boot ---------- */
 const last=store.get(KEY+'last');const q=new URLSearchParams(location.search).get('school');
-if(q&&SCHOOLS.find(s=>s.c===q))load(q);else if(last&&SCHOOLS.find(s=>s.c===last))load(last);else S=blank('');
+let reopened=false;if(q&&SCHOOLS.find(s=>s.c===q))load(q);else if(last&&SCHOOLS.find(s=>s.c===last)){load(last);reopened=!(SCH&&SCH.sample)}else S=blank('');
 render();
+function changeSchool(){go('start');setTimeout(()=>{const s=document.querySelector('[data-school]');if(s){s.focus();try{s.showPicker&&s.showPicker()}catch(e){}}},60)}
+document.addEventListener('click',e=>{if(e.target.closest('[data-chg]'))changeSchool()});
+if(reopened){const tot=TYPES.reduce((a,t)=>{const p=typeProgress(t.k);return [a[0]+p.d,a[1]+p.n]},[0,0]);
+ const when=S.savedAt?new Date(S.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+ const w=document.createElement('div');w.className='wb';w.setAttribute('role','dialog');w.setAttribute('aria-modal','true');w.setAttribute('aria-labelledby','wbh');
+ w.innerHTML=`<div><div class="k1">Welcome back</div><h2 id="wbh">You’re working on <span>${esc(SCH.n)}</span>.</h2><p>${when?`Last saved ${when} · `:''}${tot[0]} of ${tot[1]} required topics done.</p><p>Is this the school you want to update?</p><div class="row"><button class="btn main" data-wb="keep">Yes, keep going</button><button class="btn" data-wb="change">Choose a different school</button></div></div>`;
+ document.body.appendChild(w);const prev=document.activeElement;w.querySelector('[data-wb="keep"]').focus();
+ const close=()=>{w.remove();document.removeEventListener('keydown',esc1)};const esc1=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc1);
+ w.addEventListener('click',e=>{const b=e.target.closest('[data-wb]');if(!b)return;close();if(b.dataset.wb==='change')changeSchool()})}
 if(window.claude&&typeof window.claude.use==='function'){window.claude.use('downloads').then(x=>{DL=x}).catch(()=>{})}
 })();
 </script>
